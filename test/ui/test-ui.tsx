@@ -1,0 +1,61 @@
+import Graph from "src/core/graph";
+import { generateRandomGraph, createNode, createLink, selectRandomElementFromArray, selectRandomElementFromGraph } from "../tools/graph-generator";
+import {didFullModelUpdate, didPartialModelUpdate, didSettingsUpdate} from '../../src/ui/graph-ui'
+import { SettingLabel } from "../../src/core/settings";
+
+// import generateGraph from './generate-graph'
+window.addEventListener('load', async function () {
+    let graph = generateRandomGraph(2000, 500, 20, 5, 'test-graph');
+
+    // let nodes = generateNodes(5);
+    // createLink(nodes[0], nodes[1]);
+    // createLink(nodes[1], nodes[2]);
+    // createLink(nodes[1], nodes[2]);
+    // createLink(nodes[2], nodes[1]);
+    // createLink(nodes[2], nodes[1]);
+    // createLink(nodes[2], nodes[1]);
+    // createLink(nodes[1], nodes[3]);
+    // createLink(nodes[2], nodes[4]);
+    // createLink(nodes[3], nodes[4]);
+
+    // nodes[1].tags = ['math'];
+    // nodes[2].tags = ['math', 'education'];
+    // nodes[3].tags = ['education'];
+
+    // let graph = generateGraph(nodes, 'simple_diamond_graph');
+
+    // const parentId = uid();
+    // const joplinNote1: JoplinNote = {id:'1', title:'note1', parentId: parentId, links: [] };
+    // const joplinNote2 = {id:'2', title:'note2', parentId: parentId, links: [] };
+    // joplinNote1.links.push(joplinNote2.id);
+    // const joplinNotes = [joplinNote1, joplinNote2];
+    // const graph = buildGraph(joplinNotes);  
+
+    let count = 0;
+
+    let btn = document.getElementById('addNodes');
+    btn.addEventListener('click', () => {
+        let newNode = createNode(graph.nodes.size);
+        let node = selectRandomElementFromGraph(graph);
+        node.tags.add('tag' + count.toString());
+        createLink(newNode, node);
+        count++
+        graph.addNode(newNode);
+        didFullModelUpdate(graph.nodes);
+    });
+
+    // const nodes = new Map(graph.nodes);
+    // btn.addEventListener('click', () => {
+    //     let newNode = createNode(nodes.size);
+    //     let node = selectRandomElementFromArray(Array.from(nodes.values()));
+    //     nodes.set(newNode.id, newNode);
+    //     createLink(newNode, node);
+    //     didPartialModelUpdate({graphId:graph.id, add:[newNode]});
+    // });
+
+
+    didSettingsUpdate([{key: SettingLabel.COOLDOWN_TIME, value: 2000}]);
+
+    didFullModelUpdate(graph.nodes);
+
+});
