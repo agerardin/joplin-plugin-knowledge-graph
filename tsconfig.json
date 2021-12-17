@@ -1,0 +1,17 @@
+{
+	"compilerOptions": {
+		"outDir": "./dist/",
+		"module": "commonjs",
+		"sourceMap": true,
+		"target": "es6",
+		"lib": [
+			"es2020",
+			"DOM"
+		  ],
+		"jsx": "react",
+		"allowJs": true,
+		"baseUrl": ".",
+		"esModuleInterop": true
+	}
+}
+

@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body {
+        overflow: hidden;
+      }
+      .container {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+      }
+
+      .panels {
+        display: flex;
+        flex-direction: row;
+        height: 100%;
+      }
+
+      .panel {
+        flex: 1;
+        padding: 1rem;
+        display: flex;
+        justify-content: left;
+        background: #202020;
+      }
+
+      #controls {
+        min-width: 200px;
+        max-width: 200px;
+        margin-right: 0.25em;
+      }
+
+      #graph {
+        min-width:70%;
+      }
+
+      input[type="text"] {
+        width: 100%;
+      }
+
+      input[type="range"] {
+        width: 100%;
+      }
+
+      /* control-panel.css */
+
+      .controls {
+        width: 100%;
+      }
+      .filters {
+        width: 100%;
+        background-color: rgb(85, 85, 85);
+        border-radius: 3px;
+        padding: 5px;
+        margin-bottom: 75px;
+      }
+
+      .filter {
+        width: 100%;
+        margin: 5px 0;
+      }
+
+      .layout {
+        width: 100%;
+      }
+
+      /* layout controls */
+      .layout .force {
+        width: 100%;
+        background-color: rgb(85, 85, 85);
+        border-radius: 3px;
+        padding: 5px;
+        margin: 5px 0;
+      }
+      .layout .force p label {
+        margin-right: 0.5em;
+        font-size: 120%;
+        font-weight: bold;
+      }
+      .layout .force p {
+        margin-top: 0;
+      }
+      .layout .force label {
+        display: inline-block;
+      }
+      .layout input[type="checkbox"] {
+        transform: scale(1.2, 1.2);
+      }
+      .layout input[type="range"] {
+        margin: 0 5% 0.5em 5%;
+        width: 90%;
+      }
+
+      /* status viewer */
+      .layout .status p {
+        margin-bottom: 0.25em;
+      }
+      .layout .status .status_bar {
+        height: 0.5em;
+        border: 1px #777 solid;
+        border-radius: 2px;
+        padding: 1px;
+        display: flex;
+      }
+      .layout .status .status_bar #status_value {
+        background-color: #222;
+        border-radius: 1px;
+        flex-basis: 100%;
+      }
+      .layout .status .status_bar:hover {
+        border-width: 2px;
+        margin: -1px;
+      }
+      .layout .status .status_bar:active #status_value {
+        background-color: #222;
+      }
+
+      /* CSS for React Tags*/
+
+      .ReactTags__tags {
+        position: relative;
+      }
+
+      .ReactTags__clearAll {
+        cursor: pointer;
+        padding: 10px;
+        margin: 10px;
+        background: #f88d8d;
+        color: #fff;
+        border: none;
+      }
+
+      /* Styles for the input */
+      .ReactTags__tagInput {
+        border-radius: 2px;
+        display: inline-block;
+      }
+      .ReactTags__tagInput input.ReactTags__tagInputField,
+      .ReactTags__tagInput input.ReactTags__tagInputField:focus {
+        height: 31px;
+        margin: 0;
+        font-size: 12px;
+        border: 1px solid #eee;
+        /* min-width: 150px; */
+      }
+
+      .ReactTags__editInput {
+        border-radius: 1px;
+      }
+
+      .ReactTags__editTagInput {
+        display: inline-flex;
+      }
+
+      /* Styles for selected tags */
+      .ReactTags__selected span.ReactTags__tag {
+        border: 1px solid #ddd;
+        background: #63bcfd;
+        color: white;
+        font-size: 12px;
+        display: inline-block;
+        padding: 5px;
+        margin: 0 5px;
+        border-radius: 2px;
+      }
+      .ReactTags__selected a.ReactTags__remove {
+        color: #aaa;
+        margin-left: 5px;
+        cursor: pointer;
+      }
+
+      /* Styles for suggestions */
+      .ReactTags__suggestions {
+        position: absolute;
+        color: #202020;
+      }
+      .ReactTags__suggestions ul {
+        list-style-type: none;
+        box-shadow: 0.05em 0.01em 0.5em rgba(0, 0, 0, 0.2);
+        background: white;
+        width: 200px;
+      }
+      ` .ReactTags__suggestions li {
+        border-bottom: 1px solid #ddd;
+        padding: 5px 10px;
+        margin: 0;
+      }
+      .ReactTags__suggestions li mark {
+        text-decoration: underline;
+        background: none;
+        font-weight: 600;
+        color: #0096ff;
+      }
+      .ReactTags__suggestions ul li.ReactTags__activeSuggestion {
+        background: #b7cfe0;
+        cursor: pointer;
+      }
+
+      .ReactTags__remove {
+        border: none;
+        cursor: pointer;
+        background: none;
+        color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <button id="addNodes">Add nodes</button>
+      <div class="panels">
+        <div id="graph" class="panel"></div>
+        <div id="controls" class="panel"></div>
+      </div>
+    </div>
+
+    <script type="module" src="./bundle.js"></script>
+  </body>
+</html>

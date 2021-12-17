@@ -1,0 +1,74 @@
+.controls {
+  width: 100%;
+}
+
+.filters {
+  width: 100%;
+  background-color: rgb(85, 85, 85);
+  border-radius: 3px;
+  padding: 5px;
+  margin-bottom: 75px;
+}
+
+.filter {
+  width: 100%;
+  margin: 5px 0;
+}
+
+.layout {
+  width: 100%;
+}
+
+/* layout controls */
+.layout .force {
+  width: 100%;
+  background-color: rgb(85, 85, 85);
+  border-radius: 3px;
+  padding: 5px;
+  margin: 5px 0;
+}
+.layout .force p label {
+  margin-right: 0.5em;
+  font-size: 120%;
+  font-weight: bold;
+  width: 100%;
+}
+.layout .force p {
+  margin-top: 0;
+  width: 100%;
+}
+.layout .force label {
+  display: inline-block;
+  width: 100%;
+}
+.layout input[type="checkbox"] {
+  transform: scale(1.2, 1.2);
+}
+.layout input[type="range"] {
+  margin: 0 5% 0.5em 5%;
+  width: 90%;
+}
+
+/* status viewer */
+.layout .status p {
+  margin-bottom: 0.25em;
+}
+.layout .status .status_bar {
+  height: 0.5em;
+  border: 1px #777 solid;
+  border-radius: 2px;
+  padding: 1px;
+  display: flex;
+}
+.layout .status .status_bar #status_value {
+  background-color: #222;
+  border-radius: 1px;
+  flex-basis: 100%;
+}
+.layout .status .status_bar:hover {
+  border-width: 2px;
+  margin: -1px;
+}
+.layout .status .status_bar:active #status_value {
+  background-color: #222;
+}

@@ -1,0 +1,12 @@
+{
+	"manifest_version": 1,
+	"id": "joplin-plugin-graph",
+	"app_min_version": "2.2",
+	"version": "1.0.0",
+	"name": "graph",
+	"description": "Notes as nodes. Explore connections between your notes.",
+	"author": "Antoine Gerardin",
+	"homepage_url": "",
+	"repository_url": "",
+	"keywords": ["graph", "knowledge graph", "joplin", "plugin"]
+}
