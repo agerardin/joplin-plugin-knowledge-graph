@@ -2,7 +2,7 @@ import joplin from 'api';
 import { SettingItemType } from 'api/types';
 import { SettingLabel } from '../core/settings';
 
-const sectionName = "simulation/layout"
+const sectionName = "graph"
 
 export const pluginSettings = {
   COOLDOWN_TICKS: {
@@ -51,8 +51,7 @@ export async function registerSettings() {
   
   await joplin.settings.registerSection(sectionName, {
     label: 'Graph',
-    // Check out https://forkaweso.me/Fork-Awesome/icons/ for available icons.
-    iconName: 'fas fa-sitemap'
+    iconName: 'fas fa-project-diagram'
   });
 
   return await joplin.settings.registerSettings(pluginSettings);
