@@ -21,6 +21,7 @@ import {
 import Graph from "./core/graph";
 import { LOCAL_GRAPH_ID } from "./core/definitions";
 import { registerSettings, pluginSettings } from "./joplin/joplin-settings";
+import { ToolbarButtonLocation } from "api/types";
 
 const dataManager = JoplinDataManager.instance();
 
@@ -65,6 +66,18 @@ joplin.plugins.register({
     joplin.views.panels.addScript(panel, "./ui/control-panels/tags.css");
     joplin.views.panels.addScript(panel, "./ui/control-panels/control-panel.css");
     
+    await joplin.views.toolbarButtons.create('showGraph', 'showGraph', ToolbarButtonLocation.NoteToolbar);
+    await joplin.commands.register({
+      name: 'showGraph',
+      label: 'Show/Hide Graph',
+      iconName: 'fas fa-project-diagram',
+      execute: async () => {
+        const isVisible = await joplin.views.panels.visible(panel);
+        joplin.views.panels.show(panel, !isVisible);
+      },
+    });
+
+
     await registerSettings();
 
     joplin.views.panels.onMessage(panel, async (message: WebViewMessage) => {
