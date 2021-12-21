@@ -157,7 +157,35 @@ function tagSelectionChanged(tags: any[]) {
   didGraphDataUpdate(graphData);
 }
 
+function updateForceProperties(updatedForceProperties) {
+
+  model.forceProperties = updatedForceProperties;
+
+    const controlPanel = 
+    < ControlPanel 
+      suggestions={model.tags}
+      forceProperties={model.forceProperties}
+      showAllLinks={showAllLinks} 
+      showTagNodes={showTagNodes}
+      showOnlySelectedNodes={showOnlySelectedNodes}
+      tagSelectionChanged={tagSelectionChanged}
+      updateForceProperties={updateForceProperties}
+      resetForces={resetForces}
+      />;
+      
+    render(
+      controlPanel,
+      document.getElementById("controls")
+  );
+
+  updateForces();
+
+}
+
 function updateForces() {
+
+  console.log('update forces');
+
   graph.d3Force("center")
       .x(model.width * model.forceProperties.center.x * (model.forceProperties.center.enabled === true ? 1 : 0))
       .y(model.height * model.forceProperties.center.y * (model.forceProperties.center.enabled === true ? 1 : 0));
@@ -169,23 +197,34 @@ function updateForces() {
       .strength(model.forceProperties.collide.strength * (model.forceProperties.collide.enabled === true ? 1 : 0) )
       .radius(model.forceProperties.collide.radius)
       .iterations(model.forceProperties.collide.iterations);
-      graph.d3Force("forceX")
-      .strength(model.forceProperties.forceX.strength * (model.forceProperties.forceX.enabled === true ? 1 : 0) )
-      .x(model.width * model.forceProperties.forceX.x);
-      graph.d3Force("forceY")
-      .strength(model.forceProperties.forceY.strength * (model.forceProperties.forceY.enabled === true ? 1 : 0) )
-      .y(model.height * model.forceProperties.forceY.y);
-      graph.d3Force("link")
-      .distance(model.forceProperties.link.distance)
-      .iterations(model.forceProperties.link.iterations)
-      .links(model.forceProperties.link.enabled ? graph.graphData().links : []);
+
+      if(!model.forceProperties.link.enabled) {
+        graph.d3Force("link",null);
+        graph.d3Force("forceX").strength(0);
+        graph.d3Force("forceY").strength(0);
+      }
+      else {
+        //workaround weird bug in force-graph were model updates are debounced and nodes may not be available
+        //when applying the link force.
+        graph.graphData(graph.graphData());
+        graph.d3Force("link", d3.forceLink(graph.graphData().links as any) as any)
+        graph.d3Force("forceX")
+        .strength(model.forceProperties.forceX.strength * (model.forceProperties.forceX.enabled === true ? 1 : 0) )
+        .x(model.forceProperties.forceX.x);
+        graph.d3Force("forceY")
+        .strength(model.forceProperties.forceY.strength * (model.forceProperties.forceY.enabled === true ? 1 : 0) )
+        .y(model.forceProperties.forceY.y);
+      }
 
   graph.d3ReheatSimulation();
   simulationTicksCounter = 0;
+
+  
 }
 
-function refreshData() {
-  notifyListener(UIEvent.GET_DATA);
+function resetForces() {
+  model.resetForces();
+  updateForceProperties(model.forceProperties);
 }
 
 function notifyListener(event: UIEvent, value?: any) {
@@ -247,7 +286,8 @@ function rebuildTagsIndex() {
     showTagNodes={showTagNodes}
     showOnlySelectedNodes={showOnlySelectedNodes}
     tagSelectionChanged={tagSelectionChanged}
-    updateForces={updateForces}
+    updateForceProperties={updateForceProperties}
+    resetForces={resetForces}
     />;
     
   render(
@@ -280,7 +320,7 @@ function buildGraphData() {
         .filter(link => applyFilters(link, model.linkFilters))
         // !IMPORTANT we pass forceGraph a Link object so we can access the object attributes when drawing
         // however forceGraph will overwrite source and target attributes with full reference to nodes.
-        .map( link => Object.assign(link, {source: link.sourceId, target: link.targetId}))
+        .map( link => Object.assign(link, {source: link.sourceId, target: link.targetId, label:`${model.nodes.get(link.sourceId).label}->${model.nodes.get(link.targetId).label}`}, ))
     );
   });
 
@@ -363,8 +403,8 @@ function setupForceGraph() {
       .d3Force("charge", d3.forceManyBody() as any)
       .d3Force("collide", d3.forceCollide() as any)
       .d3Force("center", d3.forceCenter() as any)
-      .d3Force("forceX", d3.forceX() as any)
-      .d3Force("forceY", d3.forceY() as any)
+      .d3Force('forceX', d3.forceX() as any)
+      .d3Force('forceY', d3.forceY() as any)
       .warmupTicks(20)
       .cooldownTicks(500)
       .cooldownTime(4000);

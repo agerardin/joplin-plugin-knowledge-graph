@@ -1,23 +1,24 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState,useRef } from "react";
 import { Checkbox } from "./checkbox";
 import { TagsFilter } from "./tags";
 import { TagIndex } from "../model";
-import { set } from 'lodash';
+import { set as lodashSet, cloneDeep } from 'lodash';
 import * as d3 from "d3";
 
 type PropType = {
   suggestions: Map<string, TagIndex>;
-  forceProperties: {};
+  forceProperties: any;
   showAllLinks: Function;
   showTagNodes: Function;
   showOnlySelectedNodes: Function;
   tagSelectionChanged: Function;
-  updateForces: Function;
+  updateForceProperties: Function;
+  resetForces: Function;
 };
 
 
 export function onEngineTick(tick: number, maxTicks: number) {
-  d3.select('#status_value').style('flex-basis', (tick *100 / maxTicks) + '%');
+  d3.select('#status_value').style('flex-basis', (tick * 100 / maxTicks) + '%');
 };
 
 export function onEngineStop() {
@@ -30,7 +31,7 @@ export const ControlPanel = (props: PropType) => {
   const [showAllLinks, setShowAllLinks] = useState(true);
   const [hideTagNodes, setHideTagNodes] = useState(true);
   const [showOnlySelectedNodes, setShowOnlySelectedNodes] = useState(false);
-  const [forceProperties, setForceProperties] = useState(props.forceProperties);
+
 
   useEffect(() => {
     props.showAllLinks(showAllLinks);
@@ -44,22 +45,16 @@ export const ControlPanel = (props: PropType) => {
     props.showOnlySelectedNodes(showOnlySelectedNodes);
   }, [showOnlySelectedNodes]);
 
-  useEffect(() => {
-    if (forceProperties === props.forceProperties) {
-      return;
-    }
-    props.updateForces(forceProperties);
-  }, [forceProperties]);
 
   const handleChange = (attribute: string, value: any) => {
-    // need a brand new copy to trigger an update
-    const updated = Object.assign({}, forceProperties);
-    set(updated, attribute, value);
-    setForceProperties(updated);
+    const updated = cloneDeep(props.forceProperties);
+    lodashSet(updated, attribute, value);
+    props.updateForceProperties(updated);
   };
 
   return (
     <div className='controls'>
+
       <div className='filters'>
         <div className='filter'>
           <Checkbox
@@ -88,65 +83,30 @@ export const ControlPanel = (props: PropType) => {
             tagSelectionChanged={props.tagSelectionChanged}
           />
         </div>
-      </div>
+      </div> {/*filter */}
 
-      <div className="layout">
-        <div className="force status">
+     <div className="layout" key={props.forceProperties}>
+        <div className="layout status">
           <p>
-            <label>Status</label> Click on status bar to restart layout
+            <label>Status</label> Click on status bar to run layout
           </p>
           <div
             className="status_bar"
-            onClick={() => props.updateForces(forceProperties)}
+            onClick={() => props.updateForceProperties(props.forceProperties)}
           >
             <div id="status_value"></div>
+            <p></p>
           </div>
+          <button onClick={props.resetForces}>
+              Reset Forces
+            </button>
         </div>
-
-        <div className="force" id='center'>
-          <p>
-              <Checkbox
-                label="Center"
-                value={forceProperties.center.enabled}
-                onChange={(e: any) => handleChange('center.enabled', e.target.checked)}
-              />
-            Move the center of the graph on x and y.
-          </p>
-
-          <div>
-          <label>
-            <output id="centerX">x {forceProperties.center.x}</output>
-            <input
-              type="range"
-              min="-1"
-              max="1"
-              value={forceProperties.center.x}
-              step="0.05"
-              onChange={(e: any) => handleChange('center.x', e.target.value)}
-            />
-          </label>
-          </div>
-          <div>
-          <label>
-            <output id="centerY">y {forceProperties.center.y}</output>
-            <input
-              type="range"
-              min="-1"
-              max="1"
-              value={forceProperties.center.y}
-              step="0.05"
-              onChange={(e: any) => handleChange('center.y', e.target.value)}
-            />
-          </label>
-          </div>
-
-        </div>
-
+ 
         <div className="force" id='charge'>
           <p>
               <Checkbox
                 label="Charge"
-                value={forceProperties.charge.enabled}
+                value={props.forceProperties.charge.enabled}
                 onChange={(e: any) => handleChange('charge.enabled', e.target.checked)}
               />
             Attracts (+) or repels (-) nodes to/from each other.
@@ -154,12 +114,12 @@ export const ControlPanel = (props: PropType) => {
 
           <div>
             <label title="Negative strength repels nodes. Positive strength attracts nodes.">
-              <output id='charge.strength'>strength {forceProperties.charge.strength}</output>
+              <output id='charge.strength'>strength {props.forceProperties.charge.strength}</output>
               <input
                 type="range"
                 min="-200"
                 max="200"
-                value={forceProperties.charge.strength}
+                value={props.forceProperties.charge.strength}
                 step="10"
                 onChange={(e: any) => handleChange('charge.strength', e.target.value)}
               />
@@ -167,12 +127,12 @@ export const ControlPanel = (props: PropType) => {
           </div>
           <div>
             <label title="Minimum distance where force is applied.">
-              <output id='charge.distanceMin'>distanceMin  {forceProperties.charge.distanceMin}</output>
+              <output id='charge.distanceMin'>distanceMin  {props.forceProperties.charge.distanceMin}</output>
               <input
                 type="range"
                 min="0"
                 max="50"
-                value={forceProperties.charge.distanceMin}
+                value={props.forceProperties.charge.distanceMin}
                 step="5"
                 onChange={(e: any) => handleChange('charge.distanceMin', e.target.value)}
               />
@@ -180,13 +140,13 @@ export const ControlPanel = (props: PropType) => {
           </div>
           <div>
           <label title="Maximum distance where force is applied">
-            <output id="charge.distanceMax">distanceMax  {forceProperties.charge.distanceMax}</output>
+            <output id="charge.distanceMax">distanceMax  {props.forceProperties.charge.distanceMax}</output>
             <input
               type="range"
-              min={forceProperties.charge.distanceMaxLowerBound}
-              max={forceProperties.charge.distanceMaxUpperBound}
-              value={forceProperties.charge.distanceMax}
-              step={forceProperties.charge.step}
+              min={props.forceProperties.charge.distanceMaxLowerBound}
+              max={props.forceProperties.charge.distanceMaxUpperBound}
+              value={props.forceProperties.charge.distanceMax}
+              step={props.forceProperties.charge.step}
               onChange={(e: any) => handleChange('charge.distanceMax', e.target.value)}
             />
           </label>
@@ -197,7 +157,7 @@ export const ControlPanel = (props: PropType) => {
      <p>
               <Checkbox
                 label="Link"
-                value={forceProperties.link.enabled}
+                value={props.forceProperties.link.enabled}
                 onChange={(e: any) => handleChange('link.enabled', e.target.checked)}
               />
             Enable link force.
@@ -205,12 +165,12 @@ export const ControlPanel = (props: PropType) => {
 
           <div>
           <label title="The force will push/pull nodes to make links this long">
-            <output id="link.distance">distance {forceProperties.link.distance}</output>
+            <output id="link.distance">distance {props.forceProperties.link.distance}</output>
             <input
               type="range"
               min="0"
               max="100"
-              value={forceProperties.link.distance}
+              value={props.forceProperties.link.distance}
               step="1"
               onChange={(e: any) => handleChange('link.distance', e.target.value)}
             />
@@ -218,12 +178,12 @@ export const ControlPanel = (props: PropType) => {
           </div>
           <div>
           <label title="Higher values increase rigidity of the links (WARNING: high values are computationally expensive)">
-            <output id="link.iterations">iterations {forceProperties.link.iterations}</output>
+            <output id="link.iterations">iterations {props.forceProperties.link.iterations}</output>
             <input
               type="range"
               min="1"
               max="10"
-              value={forceProperties.link.iterations}
+              value={props.forceProperties.link.iterations}
               step="1"
               onChange={(e: any) => handleChange('link.iterations', e.target.value)}
             />
@@ -235,7 +195,7 @@ export const ControlPanel = (props: PropType) => {
         <p>
               <Checkbox
                 label="Collide"
-                value={forceProperties.collide.enabled}
+                value={props.forceProperties.collide.enabled}
                 onChange={(e: any) => handleChange('collide.enabled', e.target.checked)}
               />
             Prevents nodes from overlapping.
@@ -243,12 +203,12 @@ export const ControlPanel = (props: PropType) => {
 
           <div>
           <label>
-            <output id="collide.strength">strength {forceProperties.collide.strength}</output>
+            <output id="collide.strength">strength {props.forceProperties.collide.strength}</output>
             <input
               type="range"
               min="0"
               max="2"
-              value={forceProperties.collide.strength}
+              value={props.forceProperties.collide.strength}
               step="0.1"
               onChange={(e: any) => handleChange('collide.strength', e.target.value)}
             />
@@ -257,12 +217,12 @@ export const ControlPanel = (props: PropType) => {
 
           <div>
           <label title="Size of nodes">
-            <output id="collide.radius">radius {forceProperties.collide.radius}</output>
+            <output id="collide.radius">radius {props.forceProperties.collide.radius}</output>
             <input
               type="range"
               min="0"
               max="100"
-              value={forceProperties.collide.radius}
+              value={props.forceProperties.collide.radius}
               step="1"
               onChange={(e: any) => handleChange('collide.radius', e.target.value)}
             />
@@ -271,12 +231,12 @@ export const ControlPanel = (props: PropType) => {
 
           <div>
           <label title="Higher values increase rigidity of the nodes (WARNING: high values are computationally expensive)">
-            <output id="collide.iterations">iterations {forceProperties.collide.iterations}</output>
+            <output id="collide.iterations">iterations {props.forceProperties.collide.iterations}</output>
             <input
               type="range"
               min="0"
               max="10"
-              value={forceProperties.collide.iterations}
+              value={props.forceProperties.collide.iterations}
               step="1"
               onChange={(e: any) => handleChange('collide.iterations', e.target.value)}
             />
@@ -284,7 +244,51 @@ export const ControlPanel = (props: PropType) => {
           </div>
         </div>
 
-      </div>
+        <div className="force" id='center'>
+          <p>
+              <Checkbox
+                label="Center"
+                value={props.forceProperties.center.enabled}
+                onChange={(e: any) => handleChange('center.enabled', e.target.checked)}
+              />
+            Move the center of the graph on x and y.
+          </p>
+
+          <div>
+          <label title="x axis translation.">
+            <output id="centerX">x {props.forceProperties.center.x}</output>
+            <input
+              type="range"
+              min="-1"
+              max="1"
+              value={props.forceProperties.center.x}
+              step="0.05"
+              onChange={(e: any) => handleChange('center.x', e.target.value)}
+            />
+          </label>
+          </div>
+          <div>
+          <label title="y axis translation.">
+            <output id="centerY">y {props.forceProperties.center.y}</output>
+            <input
+              type="range"
+              min="-1"
+              max="1"
+              value={props.forceProperties.center.y}
+              step="0.05"
+              onChange={(e: any) => handleChange('center.y', e.target.value)}
+            />
+          </label>
+          </div>
+
+        </div> {/* force center */}
+
+      </div>  {/* layout */}
+
+
+
+
+      
     </div>
   );
 };

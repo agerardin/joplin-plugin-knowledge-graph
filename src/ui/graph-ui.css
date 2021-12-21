@@ -1,10 +1,12 @@
-body {
+/* body {
   overflow: hidden;
-}
+} */
 .container {
   display: flex;
   flex-direction: column;
   height: 100%;
+  font-size: var(--joplin-font-size);
+  font-family: var(--joplin-font-family);
 }
 
 .panels {
@@ -22,8 +24,8 @@ body {
 }
 
 #controls {
-  min-width: 200px;
-  max-width: 200px;
+  min-width: 5rem;
+  max-width: 10rem;
   margin-right: 0.25em;
 }
 

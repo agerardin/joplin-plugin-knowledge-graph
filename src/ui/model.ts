@@ -5,7 +5,7 @@ import Link from "src/core/link";
 
 
 // values for all forces
-const forceProperties = {
+const defaultForceProperties = {
   center: {
       enabled: true,
       x: 0,
@@ -27,14 +27,14 @@ const forceProperties = {
       radius: 5
   },
   forceX: {
-      enabled: false,
-      strength: .1,
-      x: .5
+      enabled: true,
+      strength: .05,
+      x: 0
   },
   forceY: {
-      enabled: false,
-      strength: .1,
-      y: .5
+      enabled: true,
+      strength: .05,
+      y: 0
   },
   link: {
       enabled: true,
@@ -95,17 +95,21 @@ export class Model {
   showTagNodes: boolean = true;
   nodeFilters: Filter[] = [];
   linkFilters: Filter[] = [];
-  style = defaultStyle;
-  forceProperties = forceProperties;
+  style = Object.assign({}, defaultStyle);
+  forceProperties = JSON.parse(JSON.stringify(defaultForceProperties))
   width = 0;
   height = 0;
-
   focusedNodes = new Set<GraphNode>();
 
   focusedLinks = new Set<Link>();
   hoveredNode: GraphNode;
   selectedNodes = new Set<GraphNode>();
   selectedLinks = new Set<Link>();
+
+  resetForces() {
+    this.forceProperties = JSON.parse(JSON.stringify(defaultForceProperties));
+  }
+
 
   clearFilters() {
     this.nodeFilters = [];
