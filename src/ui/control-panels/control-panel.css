@@ -1,10 +1,17 @@
+.container {
+  width: 100%;
+  height: 100%;
+  font-family: var(--joplin-font-family);
+}
+
 .controls {
   width: 100%;
 }
 
 .filters {
   width: 100%;
-  background-color: rgb(85, 85, 85);
+  /* background-color: rgb(85, 85, 85); */
+  background: var(--joplin-background-color3);
   border-radius: 3px;
   padding: 5px;
   margin-bottom: 75px;
@@ -20,16 +27,17 @@
 }
 
 /* layout controls */
-.layout .force {
+.force {
   width: 100%;
-  background-color: rgb(85, 85, 85);
+  /* background-color: rgb(85, 85, 85); */
+  background: var(--joplin-background-color3);
   border-radius: 3px;
   padding: 5px;
   margin: 5px 0;
 }
 .layout .force p label {
   margin-right: 0.5em;
-  font-size: 120%;
+  font-size: 100%;
   font-weight: bold;
   width: 100%;
 }
@@ -39,14 +47,22 @@
 }
 .layout .force label {
   display: inline-block;
-  width: 100%;
+  /* width: 100%; */
 }
-.layout input[type="checkbox"] {
+/* .layout input[type="checkbox"] {
   transform: scale(1.2, 1.2);
-}
-.layout input[type="range"] {
+} */
+/* .layout input[type="range"] {
   margin: 0 5% 0.5em 5%;
   width: 90%;
+} */
+
+.layout .status {
+  width: 100%;
+  background: var(--joplin-background-color3);
+  border-radius: 3px;
+  padding: 5px;
+  margin: 5px 0;
 }
 
 /* status viewer */
@@ -54,6 +70,7 @@
   margin-bottom: 0.25em;
 }
 .layout .status .status_bar {
+  /* width: 100%; */
   height: 0.5em;
   border: 1px #777 solid;
   border-radius: 2px;
@@ -61,14 +78,22 @@
   display: flex;
 }
 .layout .status .status_bar #status_value {
-  background-color: #222;
+  /* background-color: #222; */
+  background-color: var(--joplin-color4);
   border-radius: 1px;
   flex-basis: 100%;
+  /* width: 100%; */
 }
 .layout .status .status_bar:hover {
   border-width: 2px;
   margin: -1px;
 }
 .layout .status .status_bar:active #status_value {
-  background-color: #222;
+  background-color: var(--joplin-color);
+  /* background-color: #222; */
+}
+
+.layout button {
+  padding-top: 5px;
+  margin-top: 5px;
 }

@@ -147,6 +147,7 @@ joplin.plugins.register({
         // we prevent that behavior if the metadata we track are not modified.
         const old = graph.nodes.get(event.id);
         const node = await dataManager.getNode(event.id);
+        
         if (JSON.stringify(old) === JSON.stringify(node)) {
           return;
         }
