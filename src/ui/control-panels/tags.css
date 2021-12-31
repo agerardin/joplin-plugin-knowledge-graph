@@ -16,17 +16,16 @@
     /* Styles for the input */
     .ReactTags__tagInput {
       border-radius: 2px;
-      margin: 0 5% 0.5em 5%;
-      width: 90%;
+      margin: 0 4px 0 4px; /*temp : to align with checkboxes*/
       display: inline-block;
     }
+
     .ReactTags__tagInput input.ReactTags__tagInputField,
     .ReactTags__tagInput input.ReactTags__tagInputField:focus {
-      height: 31px;
-      margin: 0;
-      font-size: 12px;
+      height: 2em;
       border: 1px solid #eee;
-      /* min-width: 150px; */
+      width: 97%;
+      margin: 0.25rem 0 0.5em 0
     }
 
     .ReactTags__editInput {
@@ -42,45 +41,47 @@
       border: 1px solid #ddd;
       background: #63bcfd;
       color: white;
-      font-size: 12px;
-      display: inline-block;
-      padding: 5px;
-      margin: 0 5px;
+      font-weight: 600;
+      box-sizing: border-box;
+      margin: 0.25rem 0 0.25rem 0.25rem;
+      word-break: break-word;
       border-radius: 2px;
     }
     .ReactTags__selected a.ReactTags__remove {
       color: #aaa;
-      margin-left: 5px;
       cursor: pointer;
     }
 
     /* Styles for suggestions */
     .ReactTags__suggestions {
-      position: absolute;
       color: #202020;
     }
     .ReactTags__suggestions ul {
       list-style-type: none;
       box-shadow: 0.05em 0.01em 0.5em rgba(0, 0, 0, 0.2);
       background: white;
-      width: 200px;
     }
     ` .ReactTags__suggestions li {
-      border-bottom: 1px solid #ddd;
+      border-bottom: 1px solid rgb(14, 1, 1);
       padding: 5px 10px;
       margin: 0;
     }
+
+    /* partial tag emphasis */
     .ReactTags__suggestions li mark {
-      text-decoration: underline;
+      /* text-decoration: underline; */
       background: none;
       font-weight: 600;
       color: #0096ff;
     }
+
+    /* not applied */
     .ReactTags__suggestions ul li.ReactTags__activeSuggestion {
       background: #b7cfe0;
       cursor: pointer;
     }
 
+    /* remove icon */
     .ReactTags__remove {
       border: none;
       cursor: pointer;

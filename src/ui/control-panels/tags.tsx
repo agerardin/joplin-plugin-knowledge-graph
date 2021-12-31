@@ -2,6 +2,8 @@ import React, {useState, useEffect} from 'react';
 import { WithContext as ReactTags } from 'react-tag-input';
 import { TagIndex } from '../model';
 
+import './tags.css'
+
 type PropType = 
 {
   suggestions: Map<string, TagIndex>,

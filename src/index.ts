@@ -54,17 +54,16 @@ joplin.plugins.register({
       panel,
       `
       <div class="container">
-        <div class='panels'>
-          <div id='graph' class='panel'></div>
-          <div id='controls' class='panel'></div>
-        </div>
+      <div class="Graph__panels">
+        <div id="graph"></div>
+        <div id="control"></div>
+        <div id="menu"></div>
       </div>
+    </div>
 			`
     );
     joplin.views.panels.addScript(panel, "./joplin/webview/webview.js");
-    joplin.views.panels.addScript(panel, "./ui/graph-ui.css");
-    joplin.views.panels.addScript(panel, "./ui/control-panels/tags.css");
-    joplin.views.panels.addScript(panel, "./ui/control-panels/control-panel.css");
+    joplin.views.panels.addScript(panel, "./index.css");
     
     await joplin.commands.register({
       name: 'showGraph',

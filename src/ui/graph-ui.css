@@ -1,46 +1,22 @@
-/* body {
-  overflow: hidden;
-} */
-.container {
+.Graph__container {
   display: flex;
   flex-direction: column;
   height: 100%;
-  font-size: var(--joplin-font-size);
-  font-family: var(--joplin-font-family);
+  font-size: var(--graph-font-size);
+  font-family: var(--graph-font-family);
+  color: var(--graph-color);
+  background: var(--graph-background-color);
 }
 
-.panels {
+.Graph__panels {
   display: flex;
   flex-direction: row;
   height: 100%;
 }
 
-.panel {
-  flex: 1;
-  padding: 1rem;
-  display: flex;
-  justify-content: left;
-  background: #202020;
+/* controls floating button */
+#control{
+	position:fixed;
+	top:1rem;
+	right:0.5rem;
 }
-
-#controls {
-  min-width: 5rem;
-  max-width: 10rem;
-  margin-right: 0.25em;
-}
-
-#graph {
-  min-width:70%;
-}
-
-input[type="text"] {
-  width: 100%;
-}
-
-input[type="range"] {
-
-  width: 100%;
-}
-  
-
-  

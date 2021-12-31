@@ -1,99 +1,78 @@
-.container {
-  width: 100%;
-  height: 100%;
-  font-family: var(--joplin-font-family);
+.Graph__ControlPanel_container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  box-sizing: border-box;
 }
 
-.controls {
+.Graph__ControlPanel_control {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  box-sizing: border-box;
   width: 100%;
-}
-
-.filters {
-  width: 100%;
-  /* background-color: rgb(85, 85, 85); */
-  background: var(--joplin-background-color3);
   border-radius: 3px;
-  padding: 5px;
-  margin-bottom: 75px;
+  padding: 0 0.5rem 0 0;
+
 }
 
-.filter {
-  width: 100%;
-  margin: 5px 0;
+.item {
+  flex: 1 1 auto;
+  width:100%;
+  padding: 0 0.25rem 0 0.25rem;
+  margin: 0.25rem 0 0 0;
+  background: var(--graph-background-color3);
+  border-radius: 3px;
 }
 
 .layout {
   width: 100%;
 }
 
-/* layout controls */
-.force {
-  width: 100%;
-  /* background-color: rgb(85, 85, 85); */
-  background: var(--joplin-background-color3);
-  border-radius: 3px;
-  padding: 5px;
-  margin: 5px 0;
-}
-.layout .force p label {
-  margin-right: 0.5em;
-  font-size: 100%;
+.item p label {
   font-weight: bold;
-  width: 100%;
 }
-.layout .force p {
-  margin-top: 0;
-  width: 100%;
+ 
+.item input[type="range"] {
+  margin: 0 0 0.5em 0;
+  width: 95%;
 }
-.layout .force label {
-  display: inline-block;
-  /* width: 100%; */
-}
-/* .layout input[type="checkbox"] {
-  transform: scale(1.2, 1.2);
-} */
-/* .layout input[type="range"] {
-  margin: 0 5% 0.5em 5%;
-  width: 90%;
-} */
 
-.layout .status {
-  width: 100%;
-  background: var(--joplin-background-color3);
+.status {
+  background: var(--graph-background-color3);
   border-radius: 3px;
-  padding: 5px;
-  margin: 5px 0;
 }
 
-/* status viewer */
-.layout .status p {
-  margin-bottom: 0.25em;
+.status_bar_container{
+  margin-bottom: 0.5rem;;
 }
-.layout .status .status_bar {
-  /* width: 100%; */
-  height: 0.5em;
+
+.status label {
+  padding: 0.25rem;
+  font-weight: bold;
+}
+
+.status .status_bar {
+  box-sizing: border-box;
+  height: 0.75em;
   border: 1px #777 solid;
   border-radius: 2px;
-  padding: 1px;
+  margin: 0.25rem 0.25rem 0.25rem;
   display: flex;
 }
-.layout .status .status_bar #status_value {
-  /* background-color: #222; */
-  background-color: var(--joplin-color4);
+.status .status_bar #status_value {
+  background-color: var(--graph-color4);
   border-radius: 1px;
   flex-basis: 100%;
-  /* width: 100%; */
 }
-.layout .status .status_bar:hover {
+.status .status_bar:hover {
   border-width: 2px;
-  margin: -1px;
+  border-color: var(--joplin-selected-color2);
 }
-.layout .status .status_bar:active #status_value {
-  background-color: var(--joplin-color);
-  /* background-color: #222; */
+.status .status_bar:active #status_value {
+  background-color: var(--graph-color);
 }
 
-.layout button {
-  padding-top: 5px;
-  margin-top: 5px;
+.Graph__ControlPanel_container button {
+  margin: 0.25rem;
 }

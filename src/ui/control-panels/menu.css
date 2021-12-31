@@ -1,0 +1,20 @@
+.Graph__Menu__panel-content {
+  /* background-color: var(--graph-background-color); */
+  background: transparent;
+  overflow: scroll; /* important to get the menu scrollbar on small screens */
+}
+
+.Graph__Menu__panel {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  align-items: flex-end;
+  padding: 0.25em 0.25em;
+}
+
+/* .Graph__Menu__panel_container {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  align-items: flex-end;
+} */

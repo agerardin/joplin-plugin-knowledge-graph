@@ -3,9 +3,12 @@ import { generateRandomGraph, createNode, createLink, selectRandomElementFromArr
 import {didFullModelUpdate, didPartialModelUpdate, didSettingsUpdate} from '../../src/ui/graph-ui'
 import { SettingLabel } from "../../src/core/settings";
 
+import './test-ui.css'
+
+
 // import generateGraph from './generate-graph'
 window.addEventListener('load', async function () {
-    let graph = generateRandomGraph(2000, 500, 20, 5, 'test-graph');
+    let graph = generateRandomGraph(200, 50, 5, 2, 'test-graph');
 
     // let nodes = generateNodes(5);
     // createLink(nodes[0], nodes[1]);

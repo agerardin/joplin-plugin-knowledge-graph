@@ -1,0 +1,78 @@
+
+:root {
+    --graph-font-size: var(--joplin-font-size);
+    --graph-font-family: var(--joplin-font-family);
+    --graph-background-color: var(--joplin-background-color);
+    --graph-background-color3: var(--joplin-background-color3);
+    --graph-color: var(--joplin-color);
+    --graph-color4: var(--joplin-color4);
+
+
+    /*    Joplin CSS vars / Dark Theme value*/
+    --joplin-font-family: Roboto;
+    --joplin-margin: 15px;
+    --joplin-item-margin-top: 10px;
+    --joplin-item-margin-bottom: 10px;
+    --joplin-disabled-opacity: 0.3;
+    --joplin-button-min-width: 50px;
+    --joplin-button-min-height: 30px;
+    --joplin-editor-font-size: 12px;
+    --joplin-text-area-line-height: 17px;
+    --joplin-line-height: 1.6em;
+    --joplin-header-button-h-padding: 6px;
+    --joplin-toolbar-height: 26px;
+    --joplin-toolbar-padding: 6px;
+    --joplin-main-padding: 12px;
+    --joplin-top-row-height: 50px;
+    --joplin-editor-padding-left: 8px;
+    --joplin-margin-right: 15px;
+    --joplin-margin-left: 15px;
+    --joplin-margin-top: 15px;
+    --joplin-margin-bottom: 15px;
+    --joplin-font-size: 12px;
+    --joplin-toolbar-icon-size: 18px;
+    --joplin-note-viewer-font-size: 15px;
+    --joplin-background-color: #1D2024;
+    --joplin-background-color-transparent: rgba(255,255,255,0.9);
+    --joplin-odd-background-color: #141517;
+    --joplin-color: #dddddd;
+    --joplin-color-error: red;
+    --joplin-color-correct: #72b972;
+    --joplin-color-warn: #9A5B00;
+    --joplin-color-warn-url: #ffff82;
+    --joplin-color-faded: #999999;
+    --joplin-color-bright: #ffffff;
+    --joplin-divider-color: #555555;
+    --joplin-selected-color: #616161;
+    --joplin-url-color: rgb(166,166,255);
+    --joplin-background-color2: #181A1D;
+    --joplin-color2: #ffffff;
+    --joplin-selected-color2: #013F74;
+    --joplin-color-error2: #ff6c6c;
+    --joplin-color-warn2: #ffcb81;
+    --joplin-background-color3: #2E3138;
+    --joplin-background-color-hover3: #4E4E4E;
+    --joplin-color3: #dddddd;
+    --joplin-background-color4: #1D2024;
+    --joplin-color4: #789FE9;
+    --joplin-raised-background-color: #474747;
+    --joplin-raised-color: #ffffff;
+    --joplin-search-marker-background-color: #F7D26E;
+    --joplin-search-marker-color: black;
+    --joplin-warning-background-color: #013F74;
+    --joplin-table-background-color: rgb(40, 41, 42);
+    --joplin-code-background-color: rgb(47, 48, 49);
+    --joplin-code-border-color: rgb(70, 70, 70);
+    --joplin-code-color: #ffffff;
+    --joplin-block-quote-opacity: 0.7;
+    --joplin-selected-divider-color: #444444;
+    --joplin-color5: #1D2024;
+    --joplin-background-color5: #789FE9;
+    --joplin-background-color-hover5: #3B74DF;
+    --joplin-background-color-active5: #1E52B6;
+    --joplin-config-screen-padding: 24px;
+    --joplin-color-hover: #dddddd;
+    --joplin-background-hover: #013F7444;
+    --joplin-highlighted-color: #013F74;
+    --joplin-cache-key: 2px;
+}

@@ -13,9 +13,13 @@ import Node from "../core/node";
 import GraphUpdate from "../core/graph-update";
 import { Filter,  FilterKey, Model, TagIndex} from "./model";
 import { UIEvent } from "../common/message";
-import { ControlPanel, onEngineTick, onEngineStop } from "./control-panels/control-panel";
+import { onEngineTick, onEngineStop } from "./control-panels/control-panel";
 import GraphNode from "./graph-node";
 import { Setting, SettingLabel } from "../core/settings";
+import Menu from './control-panels/menu';
+import Button from '@mui/material/Button';
+
+import './graph-ui.css'
 
 const  model = new Model();
 const elem = document.getElementById("graph");
@@ -26,7 +30,25 @@ let simulationTicksCounter = 0;
 let FONT_SIZE = 3; 
 let RELATIVE_NODE_SIZE = true;
 let graphListeners: Map<UIEvent, Function> = new Map();
+
+let SHOW_MENU = true;
+let SHOW_TAG_NODES = true;
+let SHOW_ONLY_SELECTED = false;
+let SHOW_ALL_LINKS = true;
+
 setupForceGraph();
+
+const control = (
+  <div>
+    { !SHOW_MENU && <Button variant="outlined" size="small" onClick={() => { SHOW_MENU = true; showMenu(SHOW_MENU) }}>Controls</Button>}
+  </div>
+  );
+
+  
+render(
+  control,
+  document.getElementById("control")
+);
 
 window.addEventListener(
   "resize",
@@ -35,6 +57,45 @@ window.addEventListener(
   },
   true
 );
+
+function showMenu(show: boolean) {
+
+  const menu = 
+  < Menu 
+    suggestions={model.tags}
+    forceProperties={model.forceProperties}
+    allLinks={SHOW_ALL_LINKS}
+    tagNodes={SHOW_TAG_NODES}
+    onlySelected={SHOW_ONLY_SELECTED}
+    showAllLinks={showAllLinks} 
+    showTagNodes={showTagNodes}
+    showOnlySelectedNodes={showOnlySelectedNodes}
+    tagSelectionChanged={tagSelectionChanged}
+    updateForceProperties={updateForceProperties}
+    resetForces={resetForces}
+    openPanel={show}
+    panelDidClose={()=> {SHOW_MENU = !SHOW_MENU; showMenu(SHOW_MENU)}}
+  />;
+    
+  render(
+    menu,
+    document.getElementById("menu")
+ );
+
+ const control = (
+  <div>
+    { !SHOW_MENU && <Button variant="outlined" size="small" onClick={() => { SHOW_MENU = true; showMenu(SHOW_MENU) }}>Controls</Button>}
+  </div>
+  );
+
+  
+  render(
+    control,
+    document.getElementById("control")
+  );
+
+ console.log('menu opened');
+}
 
 /**
  * Register listeners for events.
@@ -116,6 +177,13 @@ export function didSettingsUpdate(settings : Setting[]) {
 
 
 function showAllLinks(show: boolean) {
+
+  SHOW_ALL_LINKS = show;
+  
+  if(SHOW_MENU) {
+    showMenu(SHOW_MENU);
+  }
+
   model.showAllLinks = show;
   if (!model.showAllLinks) {
     graph.linkCurvature(0);
@@ -125,6 +193,13 @@ function showAllLinks(show: boolean) {
 }
 
 function showTagNodes(show: boolean) {
+
+  SHOW_TAG_NODES = show;
+
+  if(SHOW_MENU) {
+    showMenu(SHOW_MENU);
+  }
+
   model.showTagNodes = show;
   model.nodeFilters = model.nodeFilters.filter((filter : Filter) => filter.name !== FilterKey.TAG_NODE);
   if (!model.showTagNodes) {
@@ -134,10 +209,16 @@ function showTagNodes(show: boolean) {
   didGraphDataUpdate(graphData);
 }
 
-function showOnlySelectedNodes(showOnlySelected: boolean) {
+function showOnlySelectedNodes(show: boolean) {
+
+  SHOW_ONLY_SELECTED = show;
+
+  if(SHOW_MENU) {
+    showMenu(SHOW_MENU);
+  }
 
   model.nodeFilters = model.nodeFilters.filter((filter : Filter) => filter.name !== FilterKey.ONLY_SELECTED_NODE);
-  if (showOnlySelected) {
+  if (show) {
     model.nodeFilters.push( {name: FilterKey.ONLY_SELECTED_NODE, filter: (node: GraphNode) => model.focusedNodes.has(node)} );
   }
   const graphData = buildGraphData();
@@ -161,22 +242,9 @@ function updateForceProperties(updatedForceProperties) {
 
   model.forceProperties = updatedForceProperties;
 
-    const controlPanel = 
-    < ControlPanel 
-      suggestions={model.tags}
-      forceProperties={model.forceProperties}
-      showAllLinks={showAllLinks} 
-      showTagNodes={showTagNodes}
-      showOnlySelectedNodes={showOnlySelectedNodes}
-      tagSelectionChanged={tagSelectionChanged}
-      updateForceProperties={updateForceProperties}
-      resetForces={resetForces}
-      />;
-      
-    render(
-      controlPanel,
-      document.getElementById("controls")
-  );
+  if(SHOW_MENU) {
+    showMenu(SHOW_MENU);
+  }
 
   updateForces();
 
@@ -235,8 +303,10 @@ function notifyListener(event: UIEvent, value?: any) {
 
 function setGraphDimensions() {
   const graphPanel = document.getElementById("graph");
-  model.width = graphPanel.offsetWidth;
+  
+  model.width = window.innerWidth;
   model.height = window.innerHeight;
+
   graph.width(model.width);
   graph.height(model.height);
 }
@@ -277,23 +347,9 @@ function rebuildTagsIndex() {
 
   model.tags = tags;
 
-  //re-render tags filter with updated suggestions
-  const controlPanel = 
-  < ControlPanel 
-    suggestions={model.tags}
-    forceProperties={model.forceProperties}
-    showAllLinks={showAllLinks} 
-    showTagNodes={showTagNodes}
-    showOnlySelectedNodes={showOnlySelectedNodes}
-    tagSelectionChanged={tagSelectionChanged}
-    updateForceProperties={updateForceProperties}
-    resetForces={resetForces}
-    />;
-    
-  render(
-    controlPanel,
-    document.getElementById("controls")
-);
+  if(SHOW_MENU) {
+    showMenu(SHOW_MENU);
+  }
 }
 
 /**
