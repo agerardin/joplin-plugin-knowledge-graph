@@ -5,7 +5,7 @@ export default class Link {
     targetId: ID
     label?: string
     type?: string
-    position?: number;
+    position?: {start: number, end:number};
 
     constructor(sourceId: string, targetId: string) {
         this.sourceId = sourceId;

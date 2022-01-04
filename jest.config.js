@@ -1,12 +1,28 @@
 /** @type {import('ts-jest/dist/types').InitialOptionsTsJest} */
 module.exports = {
   // enable use of typescript in tests
-  preset: 'ts-jest',
+  preset: 'ts-jest',  
+  // preset: 'babel-jest',
+
   // The test environment that will be used for testing
   testEnvironment: "node",
+
   // let us define mocks from api calls
   moduleNameMapper: {
-    "^api$": "<rootDir>/test/__mocks__/mock-joplin-api.ts",
+    "^api$": "<rootDir>/test/__mocks__/mock-joplin-api.ts"
+  },
+
+  // transform: {}
+  // A map from regular expressions to paths to transformers
+  transform: {
+    "/node_modules/.+\\.js$": 'babel-jest',
+  },
+
+  // An array of regexp pattern strings that are matched against all source file paths, matched files will skip transformation
+  transformIgnorePatterns: [
+    "/node_modules/(!unified)",
+    // "\\.pnp\\.[^\\/]+$"
+  ],
 
   // For a detailed explanation regarding each configuration property, visit:
   // https://jestjs.io/docs/en/configuration.html
@@ -127,9 +143,11 @@ module.exports = {
   // rootDir: undefined,
 
   // A list of paths to directories that Jest should use to search for files in
-  // roots: [
-  //   "<rootDir>"
-  // ],
+  roots: [
+    "src"
+  ],
+
+  
 
   // Allows you to use a custom runner instead of Jest's default test runner
   // runner: "jest-runner",
@@ -201,5 +219,4 @@ module.exports = {
 
   // Whether to use watchman for file crawling
   // watchman: true,
-  }
 };

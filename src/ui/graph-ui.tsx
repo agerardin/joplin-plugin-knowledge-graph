@@ -23,7 +23,7 @@ import './graph-ui.css'
 
 const  model = new Model();
 const elem = document.getElementById("graph");
-const graph = ForceGraph()(elem);
+let graph = ForceGraph()(elem);
 
 let simulationTicksCounter = 0;
 
@@ -93,8 +93,6 @@ function showMenu(show: boolean) {
     control,
     document.getElementById("control")
   );
-
- console.log('menu opened');
 }
 
 /**
@@ -104,6 +102,15 @@ function showMenu(show: boolean) {
  */
 export function on(event: UIEvent, callback: Function) {
   graphListeners.set(event, callback);
+}
+
+export function resumeAnimation(resume: boolean) {
+  if(resume) {
+    graph.resumeAnimation();
+  }
+  else {
+    graph.pauseAnimation();
+  }
 }
 
 export function didSelectNodes(nodeIds: ID[]) {
@@ -251,8 +258,6 @@ function updateForceProperties(updatedForceProperties) {
 }
 
 function updateForces() {
-
-  console.log('update forces');
 
   graph.d3Force("center")
       .x(model.width * model.forceProperties.center.x * (model.forceProperties.center.enabled === true ? 1 : 0))

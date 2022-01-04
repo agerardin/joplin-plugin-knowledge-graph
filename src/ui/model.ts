@@ -1,4 +1,3 @@
-import ModelNode from "src/core/node";
 import { ID } from "src/core/definitions";
 import GraphNode from  "./graph-node"
 import Link from "src/core/link";

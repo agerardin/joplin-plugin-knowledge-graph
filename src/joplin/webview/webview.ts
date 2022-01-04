@@ -7,15 +7,19 @@
 
 
 import {PluginEvent, PluginMessage, UIEvent, WebviewEvent, WebViewMessage} from '../../common/message'
-import {didPartialModelUpdate, didFullModelUpdate, didSelectNodes, didSettingsUpdate, on } from '../../ui/graph-ui'
+import {didPartialModelUpdate, didFullModelUpdate, didSelectNodes, didSettingsUpdate, on, resumeAnimation } from '../../ui/graph-ui'
 
 
 declare var webviewApi : any;
 
-// The webview is not only loaded on plugin startup, but also each time settings update.
-// So data and settings must be requested each time the ui reloads. 
-webviewApi.postMessage({event:WebviewEvent.GET_DATA});
-webviewApi.postMessage({event:WebviewEvent.GET_SETTINGS});
+const init = () => {
+        // The webview is not only loaded on plugin startup, but also each time settings update.
+        // So data and settings must be requested each time the ui reloads. 
+        webviewApi.postMessage({event:WebviewEvent.GET_DATA});
+        webviewApi.postMessage({event:WebviewEvent.GET_SETTINGS});
+}
+
+init();
 
 poll();
 
@@ -35,6 +39,12 @@ function poll() {
             case PluginEvent.SETTING_UPDATED:
                 didSettingsUpdate(msg.value);
                 break;
+            case PluginEvent.RESUME_ANIMATION:
+                resumeAnimation(msg.value);
+                break;
+            case PluginEvent.SHOW_PANEL:
+                // workaround for synchronization
+                webviewApi.postMessage({event:WebviewEvent.SHOW_PANEL, value:msg.value});
         }
         poll();
     })

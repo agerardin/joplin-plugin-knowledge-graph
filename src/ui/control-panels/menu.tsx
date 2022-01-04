@@ -28,8 +28,6 @@ type PropType = {
 const Menu = (props: PropType) => {
   const [panelSize, setPanelSize] = React.useState<number>(15);
 
-  console.log('open panel', props.openPanel);
-
   return (
     <div  className='Graph__Menu__container'>
       <SlidingPanel
@@ -64,43 +62,3 @@ const Menu = (props: PropType) => {
 };
 
 export default Menu;
-
-
-// const Menu = (props: PropType) => {
-//     const [openPanel, setOpenPanel] = useState(false);
-//     const [panelSize, setPanelSize] = React.useState<number>(15);
-//     return (
-//         <div>
-//                         <div className="Graph__Menu__toggle">
-//                   <button onClick={() => setOpenPanel(true)}>Controls</button>
-//               </div>
-//           <div className="Graph__Menu__container">
-  
-//               <SlidingPanel
-//                   type={"right"}
-//                   isOpen={openPanel}
-//                   size={panelSize}
-//                   noBackdrop={true}
-//                   panelClassName="sliding-menu">
-//                       <div id="controls" className="Graph__panel">
-//                           <div className='Graph__Menu__toggle'>
-//                               <button onClick={() => setOpenPanel(false)}>close</button>
-//                           </div>
-//                           <ControlPanel
-//                               suggestions={props.suggestions}
-//                               forceProperties={props.forceProperties}
-//                               showAllLinks={props.showAllLinks}
-//                               showTagNodes={props.showTagNodes}
-//                               showOnlySelectedNodes={props.showOnlySelectedNodes}
-//                               tagSelectionChanged={props.tagSelectionChanged}
-//                               updateForceProperties={props.updateForceProperties}
-//                               resetForces={props.resetForces}
-//                           />
-//                       </div>
-//               </SlidingPanel>
-//           </div>
-//       </div>
-//     );
-//   };
-  
-//   export default Menu;

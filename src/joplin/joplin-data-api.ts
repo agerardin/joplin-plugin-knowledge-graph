@@ -135,7 +135,7 @@ export default class JoplinDataApi {
     private async buildNote(joplinNote: any) : Promise<Note> {
         const note = parseJoplinNote(joplinNote);
         const tags = await joplin.data.get(['notes', joplinNote.id, 'tags']);
-        note.tags = tags?.items ? tags.items.map((tag: any) => tag.title) : [];
+        note.tags = (tags?.items) ? tags.items.map((tag: any) => tag.title) : [];
         return note;
     }
 

@@ -45,6 +45,14 @@ export const pluginSettings = {
     label: SettingLabel.RELATIVE_FONT_SIZE,
     description: "Should the label size be proportional to node size?",
   },
+  SHOW_ON_START: {
+    value: true, 
+    type: SettingItemType.Bool,
+    section: sectionName,
+    public: true,
+    label: SettingLabel.SHOW_ON_START,
+    description: "Should the graph be displayed on startup?",
+  },
 }
 
 export async function registerSettings() {

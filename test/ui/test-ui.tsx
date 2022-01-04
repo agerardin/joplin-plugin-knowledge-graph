@@ -1,14 +1,16 @@
 import Graph from "src/core/graph";
-import { generateRandomGraph, createNode, createLink, selectRandomElementFromArray, selectRandomElementFromGraph } from "../tools/graph-generator";
+import { generateRandomGraph, createNode, createLink, selectRandomElementFromArray, selectRandomElementFromGraph, generateGraph, generateNodes } from "../tools/graph-generator";
 import {didFullModelUpdate, didPartialModelUpdate, didSettingsUpdate} from '../../src/ui/graph-ui'
 import { SettingLabel } from "../../src/core/settings";
 
 import './test-ui.css'
+import { uid } from "uid";
+import Note, { buildNodeFromNote } from "../../src/joplin/note";
 
 
 // import generateGraph from './generate-graph'
 window.addEventListener('load', async function () {
-    let graph = generateRandomGraph(200, 50, 5, 2, 'test-graph');
+    // let graph = generateRandomGraph(200, 50, 5, 2, 'test-graph');
 
     // let nodes = generateNodes(5);
     // createLink(nodes[0], nodes[1]);
@@ -21,18 +23,19 @@ window.addEventListener('load', async function () {
     // createLink(nodes[2], nodes[4]);
     // createLink(nodes[3], nodes[4]);
 
-    // nodes[1].tags = ['math'];
-    // nodes[2].tags = ['math', 'education'];
-    // nodes[3].tags = ['education'];
+    // nodes[1].tags.add('math');
+    // nodes[2].tags.add('math').add('education');
+    // nodes[3].tags.add('education');
 
     // let graph = generateGraph(nodes, 'simple_diamond_graph');
 
-    // const parentId = uid();
-    // const joplinNote1: JoplinNote = {id:'1', title:'note1', parentId: parentId, links: [] };
-    // const joplinNote2 = {id:'2', title:'note2', parentId: parentId, links: [] };
-    // joplinNote1.links.push(joplinNote2.id);
-    // const joplinNotes = [joplinNote1, joplinNote2];
-    // const graph = buildGraph(joplinNotes);  
+    const parentId = uid();
+    const joplinNote1: Note = {id:'1', title:'note1', parentId: parentId, links: [] };
+    const joplinNote2 = {id:'2', title:'note2', parentId: parentId, links: [] };
+    joplinNote1.links.push({noteId: '2', elementId: 'section1'});
+    const joplinNotes = [joplinNote1, joplinNote2];
+    const nodes = joplinNotes.map(joplinNote => buildNodeFromNote(joplinNote));
+    const graph = generateGraph(nodes, 'test');  
 
     let count = 0;
 

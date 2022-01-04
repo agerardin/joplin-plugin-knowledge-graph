@@ -22,6 +22,7 @@ import Graph from "./core/graph";
 import { LOCAL_GRAPH_ID } from "./core/definitions";
 import { registerSettings, pluginSettings } from "./joplin/joplin-settings";
 import { ToolbarButtonLocation } from "api/types";
+import { SettingLabel } from "./core/settings";
 
 const dataManager = JoplinDataManager.instance();
 
@@ -64,19 +65,24 @@ joplin.plugins.register({
     );
     joplin.views.panels.addScript(panel, "./joplin/webview/webview.js");
     joplin.views.panels.addScript(panel, "./index.css");
+
+    await registerSettings();
+    
+    const shouldShow = await joplin.settings.value(SettingLabel.SHOW_ON_START);
+    await joplin.views.panels.show(panel, shouldShow);
     
     await joplin.commands.register({
       name: 'showGraph',
       label: 'Show/Hide Graph',
       iconName: 'fas fa-project-diagram',
       execute: async () => {
-        const isVisible = await joplin.views.panels.visible(panel);
-        joplin.views.panels.show(panel, !isVisible);
+        const shouldShow = ! await joplin.views.panels.visible(panel);
+        notifyWebview({ event: PluginEvent.RESUME_ANIMATION, value: shouldShow });
+        //asynchronously hiding the panel prevents the webview to pause the canvas animation so we need to synchronize
+        notifyWebview({ event: PluginEvent.SHOW_PANEL, value: shouldShow });
       },
     });
     await joplin.views.toolbarButtons.create('showGraph', 'showGraph', ToolbarButtonLocation.NoteToolbar);
-
-    await registerSettings();
 
     joplin.views.panels.onMessage(panel, async (message: WebViewMessage) => {
       switch (message.event) {
@@ -96,11 +102,19 @@ joplin.plugins.register({
           break;
         }
         case WebviewEvent.GET_DATA: {
+          if(! await joplin.views.panels.visible(panel)) {
+            //optimization. webview is reinitialized each time the panel visibility changes.
+            return;
+          }
           graph.nodes = await dataManager.getAllNodes();
           notifyWebview({ event: PluginEvent.FULL_UPDATE, value: graph.nodes });
           break;
         }
         case WebviewEvent.GET_SETTINGS: {
+          if(! await joplin.views.panels.visible(panel)) {
+            //optimization. webview is reinitialized each time the panel visibility changes.
+            return;
+          }
           //collect settings from joplin
           const values = await Promise.all(
             Object.keys(pluginSettings).map(key => {
@@ -114,6 +128,10 @@ joplin.plugins.register({
           });
 
           notifyWebview({ event: PluginEvent.SETTING_UPDATED, value: settings });
+          break;
+        }
+        case WebviewEvent.SHOW_PANEL: {
+          await joplin.views.panels.show(panel, message.value);
         }
       }
     });

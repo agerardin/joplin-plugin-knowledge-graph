@@ -88,7 +88,7 @@ export default class JoplinDataManager {
         notes.set(note.id, note);
 
         note.links.forEach((link) => {
-          if (!notes.has(link.targetId)) {
+          if (!notes.has(link.noteId)) {
             pending.push(link);
           }
         });
@@ -155,11 +155,11 @@ export default class JoplinDataManager {
       while (i--) {
         let link = note.links[i];
 
-        if (idsNotFound.includes(link.targetId)) {
+        if (idsNotFound.includes(link.noteId)) {
           // either we have built a partial graph and bad links have been flagged
           badLinks.push(link);
           note.links.splice(i, 1);
-        } else if (note.visitLinks && !notes.has(link.targetId)) {
+        } else if (note.visitLinks && !notes.has(link.noteId)) {
           // or we have built the full graph and it should be consistent
           badLinks.push(link);
           note.links.splice(i, 1);
