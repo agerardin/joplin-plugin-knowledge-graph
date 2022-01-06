@@ -50,18 +50,20 @@ Label size are also customizable.
 
 ## Similar projects and related plugins
 
+This plugin works best in combination with other plugins that helps manage links and backlinks, provide links preview
+or facilate creating notes from existing notes.
+
+* [Note Link System](https://discourse.joplinapp.org/t/plugin-note-link-system/21768)
+* [Quick Links](https://discourse.joplinapp.org/t/quick-links-plugin/14214)
+* [Copy Markdown Link](https://discourse.joplinapp.org/t/copy-markdown-link-to-active-note/1440)
+* [Copy Note from Selection](https://discourse.joplinapp.org/t/create-note-from-highlighted-text/12511)
+* [Automatic Backlinks](https://discourse.joplinapp.org/t/automatic-backlinks-with-manual-insert-option/13632)
+
+
 The graph interactions have been inspired by the foam vscode extension : `https://foambubble.github.io/foam/`.
 
 You may also want to look at another graph plugin for Joplin `https://github.com/treymo/joplin-link-graph` which
 also provide graph visualization.
-
-This plugin works best in combination with other plugins that helps manage links and backlinks:
-
-* `https://discourse.joplinapp.org/t/quick-links-plugin/14214`
-* `https://discourse.joplinapp.org/t/copy-markdown-link-to-active-note/14402`
-* `https://discourse.joplinapp.org/t/create-note-from-highlighted-text/12511`
-* `https://discourse.joplinapp.org/t/automatic-backlinks-with-manual-insert-option/13632`
-
 
 ***
 
