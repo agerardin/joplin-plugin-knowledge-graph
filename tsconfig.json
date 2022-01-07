@@ -12,6 +12,6 @@
 		"allowJs": true,
 		"baseUrl": ".",
 		"esModuleInterop": true
-	}
+	},
 }
 

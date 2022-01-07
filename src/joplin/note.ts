@@ -21,7 +21,9 @@ export function parseJoplinNote(joplinNote : any) : Note {
     links: [],
   };
   
-  parseNoteBody(joplinNote.body, note);
+  note.links = parseNoteLinks(joplinNote);
+
+  // parseNoteBody(joplinNote.body, note);
 
   return note;
 }
@@ -39,4 +41,29 @@ export function buildNodeFromNote(note: Note): Node {
   note.tags?.forEach(tag => node.tags.add(tag));
   node.type = 'note';
   return node;
+}
+
+export function parseNoteLinks(joplinNote: any) : NoteLink[] {
+  const links : NoteLink[] = [];
+  // TODO: needs to handle resource links vs note links. see 4. Tips note for
+  // webclipper screenshot.
+  // https://stackoverflow.com/questions/37462126/regex-match-markdown-link
+  const linkRegexp = /\[\]|\[.*?\]\(:\/(.*?)\)/g;
+  var match = linkRegexp.exec(joplinNote.body);
+  while (match != null) {
+    if (match[1] !== undefined) {
+      const target = match[1];
+
+      let [noteId, elementId] = target.split('#');
+
+      const link = {
+        noteId: noteId,
+        elementId: elementId
+      }
+
+      links.push(link);
+    }
+    match = linkRegexp.exec(joplinNote.body);
+  }
+  return links;
 }
