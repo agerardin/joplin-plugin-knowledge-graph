@@ -10,7 +10,7 @@ import Note, { buildNodeFromNote } from "../../src/joplin/note";
 
 // import generateGraph from './generate-graph'
 window.addEventListener('load', async function () {
-    // let graph = generateRandomGraph(200, 50, 5, 2, 'test-graph');
+    let graph = generateRandomGraph(2500, 2000, 50, 20, 'test-graph');
 
     // let nodes = generateNodes(5);
     // createLink(nodes[0], nodes[1]);
@@ -29,25 +29,25 @@ window.addEventListener('load', async function () {
 
     // let graph = generateGraph(nodes, 'simple_diamond_graph');
 
-    const parentId = uid();
-    const joplinNote1: Note = {id:'1', title:'note1', parentId: parentId, links: [] };
-    const joplinNote2 = {id:'2', title:'note2', parentId: parentId, links: [] };
-    joplinNote1.links.push({noteId: '2', elementId: 'section1'});
-    const joplinNotes = [joplinNote1, joplinNote2];
-    const nodes = joplinNotes.map(joplinNote => buildNodeFromNote(joplinNote));
-    const graph = generateGraph(nodes, 'test');  
+    // const parentId = uid();
+    // const joplinNote1: Note = {id:'1', title:'note1', parentId: parentId, links: [] };
+    // const joplinNote2 = {id:'2', title:'note2', parentId: parentId, links: [] };
+    // joplinNote1.links.push({noteId: '2', elementId: 'section1'});
+    // const joplinNotes = [joplinNote1, joplinNote2];
+    // const nodes = joplinNotes.map(joplinNote => buildNodeFromNote(joplinNote));
+    // const graph = generateGraph(nodes, 'test');  
 
     let count = 0;
 
     let btn = document.getElementById('addNodes');
     btn.addEventListener('click', () => {
-        let newNode = createNode(graph.nodes.size);
+        let newNode = createNode(graph.nodes.size.toString());
         let node = selectRandomElementFromGraph(graph);
         node.tags.add('tag' + count.toString());
         createLink(newNode, node);
         count++
         graph.addNode(newNode);
-        didFullModelUpdate(graph.nodes);
+        didFullModelUpdate(graph);
     });
 
     // const nodes = new Map(graph.nodes);
@@ -62,6 +62,6 @@ window.addEventListener('load', async function () {
 
     didSettingsUpdate([{key: SettingLabel.COOLDOWN_TIME, value: 2000}]);
 
-    didFullModelUpdate(graph.nodes);
+    didFullModelUpdate(graph);
 
 });

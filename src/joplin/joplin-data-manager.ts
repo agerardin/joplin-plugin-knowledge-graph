@@ -3,6 +3,7 @@ import Node from "../core/node";
 import Graph from "../core/graph";
 import Note, { buildNodeFromNote } from "./note";
 import JoplinDataApi from "./joplin-data-api";
+import { Tag } from "src/core/tag";
 
 export default class JoplinDataManager {
   dataApi_ = JoplinDataApi.instance();
@@ -11,14 +12,14 @@ export default class JoplinDataManager {
 
   private static instance_: JoplinDataManager;
 
-  static instance(): JoplinDataManager {
+  public static instance(): JoplinDataManager {
     if (!this.instance_) {
       this.instance_ = new JoplinDataManager();
     }
     return this.instance_;
   }
 
-  async getAllNodes(): Promise<Map<ID, Node>> {
+  public async getAllNodes(): Promise<Map<ID, Node>> {
 
     const nodes: Map<ID, Node> = new Map();
     const notes = (await this.collectAllNotes()).notes;
@@ -32,11 +33,27 @@ export default class JoplinDataManager {
     return nodes;
   }
 
-  async getNode(noteId: ID): Promise<Node> {
+  public async getNoteUpdates(cursor?: string): 
+  Promise <{
+            updates: any[];
+            cursor: string;
+           }>  {
+    return this.dataApi_.getNoteUpdates(cursor);
+  }
+
+  public async getNode(noteId: ID): Promise<Node> {
     const note = await this.dataApi_.getNote(this.buildNoteQueryParams(), noteId);
     const node = buildNodeFromNote(note);
     node.graphId = LOCAL_GRAPH_ID;
     return node;
+  }
+
+  public async getTags() : Promise<Tag[]> {
+    return this.dataApi_.getTags();
+  }
+
+  public async getNodeIdsForTag(tag: any) {
+    return this.dataApi_.getNoteIdsForTag(tag);
   }
 
   private buildNoteQueryParams() {

@@ -1,4 +1,4 @@
-import Node from '../../src/core/node'
+import Node, { NODE_TYPE } from '../../src/core/node'
 import Link from '../../src/core/link'
 import Graph from '../../src/core/graph';
 
@@ -8,12 +8,8 @@ let debugNodeId = (index: number) => {
 
 let nodeIdGenerator = debugNodeId;
 
-export function setNodeIdGenerator(idGenerator: (index: number) => string ) {
-    nodeIdGenerator = idGenerator;
-}
-
-export function createNode(id: number) {
-    return new Node(nodeIdGenerator(id));
+export function createNode(id: string) {
+    return new Node(id);
 }
 
 export function createLink(source: Node, target: Node) {
@@ -38,7 +34,7 @@ export function generateRandomLinks(nodes: Node[], N: number) {
         let source : Node = selectRandomElementFromArray(nodes);
         let target: Node = selectRandomElementFromArray(nodes);
         const link = new Link(source.id, target.id);
-        link.type = "reference";
+        link.type = "REFERENCE";
         source.rel.push(link);
         return link;
     });
@@ -55,12 +51,23 @@ export function generateRandomLinks(nodes: Node[], N: number) {
  * @returns the list of tagged nodes.
  */
 export function generateRandomTags(nodes: Node[], N: number, M: number) {
-    const tags = [...Array(N).keys()].map( index => {
+    
+    const tagNodes = [...Array(N).keys()].map( index => {
+        const tagNode = createNode(`tag${index}`);
+        tagNode.type = NODE_TYPE.TAG;
+        tagNode.label = `${tagNode.id}`;
+        
         [...Array(M).keys()].forEach( _ => {
             let node = selectRandomElementFromArray(nodes);
             node.tags.add(`tag${index}`);
+            const link = new Link(tagNode.id, node.id);
+            link.type = "TAG";
+            tagNode.rel.push(link);
         });
+        return tagNode;
     });
+
+    nodes.push(...tagNodes);
     return nodes;
 }
 

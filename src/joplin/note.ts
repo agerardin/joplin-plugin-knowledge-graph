@@ -1,7 +1,7 @@
 import Link from "../core/link";
-import Node from "../core/node";
+import Node, { NODE_TYPE } from "../core/node";
 import NoteLink from "./note-link";
-import { parseNoteBody } from './mkdown-parser';
+import { ID } from "src/core/definitions";
 
 export default interface Note {
   id: string;
@@ -23,8 +23,6 @@ export function parseJoplinNote(joplinNote : any) : Note {
   
   note.links = parseNoteLinks(joplinNote);
 
-  // parseNoteBody(joplinNote.body, note);
-
   return note;
 }
 
@@ -39,7 +37,7 @@ export function buildNodeFromNote(note: Note): Node {
     node.rel.push(link);
   });
   note.tags?.forEach(tag => node.tags.add(tag));
-  node.type = 'note';
+  node.type = NODE_TYPE.NOTE
   return node;
 }
 

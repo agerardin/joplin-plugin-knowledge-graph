@@ -1,12 +1,12 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import { WithContext as ReactTags } from 'react-tag-input';
-import { TagIndex } from '../model';
+import { Tag } from 'src/core/tag';
 
 import './tags.css'
 
 type PropType = 
 {
-  suggestions: Map<string, TagIndex>,
+  suggestions: Map<string, Tag>,
   tagSelectionChanged : Function
 }
 
@@ -18,28 +18,28 @@ const delimiters = [KeyCodes.comma, KeyCodes.enter];
 
 export const TagsFilter = (props : PropType) => {
 
-  let suggestions = Array.from(props.suggestions.values()).map((tagInfo : TagIndex) => {
+  let suggestions = Array.from(props.suggestions.values()).map((tag : Tag) => {
     return {
-      id: tagInfo.tagNodeId,
-      text: `${tagInfo.tagNodeId} (${tagInfo.count})`,
+      id: tag.label,
+      text: `${tag.label} (${tag.nodeIds.length})`,
     };
   });
 
   const [tags, setTags] = useState([]);
 
-  useEffect(() => {
-    props.tagSelectionChanged(tags)
-  }, [tags]);
-
   const handleDelete = (i : number) => {
-    setTags(tags.filter((_ : any, index : number) => index !== i));
+    const updatedState = tags.filter((_ : any, index : number) => index !== i);
+    setTags(updatedState);
+    props.tagSelectionChanged(updatedState);
   };
 
   const handleAddition = (tag : any) => {
     if(!props.suggestions.has(tag.id)) {
       return;
     }
-    setTags([...tags, tag]);
+    const updatedState = [...tags, tag];
+    setTags(updatedState);
+    props.tagSelectionChanged(updatedState);
   };
 
   const handleDrag = (tag, currPos, newPos) => {
@@ -51,6 +51,7 @@ export const TagsFilter = (props : PropType) => {
 
   const onClearAll = () => {
     setTags([]);
+    props.tagSelectionChanged([]);
   }
 
   return (

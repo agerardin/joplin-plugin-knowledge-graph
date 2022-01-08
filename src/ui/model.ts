@@ -1,37 +1,43 @@
 import { ID } from "src/core/definitions";
 import GraphNode from  "./graph-node"
 import Link from "src/core/link";
+import { Tag } from "src/core/tag";
+import { ForceGraphInstance } from "force-graph";
 
 
 // values for all forces
 const defaultForceProperties = {
   center: {
-      enabled: true,
+      enabled: false,
       x: 0,
       y: 0
   },
   charge: {
-      enabled: true,
+      enabled: false,
       strength: -30,
       distanceMin: 1,
-      distanceMax: 10000,
-      distanceMaxLowerBound: 0,
-      distanceMaxUpperBound: 40000,
-      step:1000
+      distanceMax: {
+        value: Math.exp(Math.log(2000)),
+        lowerBound: 1,
+        upperBound: Math.exp(Math.log(2000)),
+        step: 0.1,
+        scale:"log"
+      },
+      step: 1
   },
   collide: {
       enabled: true,
       strength: .7,
       iterations: 1,
-      radius: 5
+      radius: 30
   },
   forceX: {
-      enabled: true,
+      enabled: false,
       strength: .05,
       x: 0
   },
   forceY: {
-      enabled: true,
+      enabled: false,
       strength: .05,
       y: 0
   },
@@ -53,24 +59,22 @@ const defaultStyle = {
     width: 1.5,
     particleWidth: 3.0,
   },
+  fontSize: "#CECECE",
   node: {
-    fontColor: "#CECECE",
-    color: "#CECECE",
+    color: "grey",
     highlightedColor: "#CECECE",
+    selectedColor: "#45b1ff",
     border: {
       color: "#CECECE",
       highlightedColor: "#0096FF",
+      selectedColor: "#45b1ff",
     },
   },
   tagNode: {
     highlightColor: "orange",
+    selectedColor: 'darkorange'
   }
 };
-
-export interface TagIndex {
-  tagNodeId: ID,
-  count: number
-}
 
 export enum FilterKey {
   TAG_NODE= "TAG_NODE",
@@ -88,7 +92,7 @@ export interface Filter {
 
 export class Model {
   nodes = new Map<ID, GraphNode>();
-  tags = new Map<string, TagIndex>();
+  tagIndex = new Map<string, Tag>();
   suggestions = [];
   showAllLinks: boolean = true;
   showTagNodes: boolean = true;
@@ -99,11 +103,16 @@ export class Model {
   width = 0;
   height = 0;
   focusedNodes = new Set<GraphNode>();
+  graph : ForceGraphInstance;
 
   focusedLinks = new Set<Link>();
   hoveredNode: GraphNode;
   selectedNodes = new Set<GraphNode>();
   selectedLinks = new Set<Link>();
+
+  constructor(graph?: ForceGraphInstance) {
+    this.graph = graph;
+  }
 
   resetForces() {
     this.forceProperties = JSON.parse(JSON.stringify(defaultForceProperties));
@@ -122,7 +131,7 @@ export class Model {
 
   selectNode(node: GraphNode) {
     this.selectedNodes.add(node);
-    this.updateFocus();
+    // this.updateFocus();
   }
 
   selectLink(link: Link) {
@@ -132,7 +141,7 @@ export class Model {
 
   unselectNode(node: GraphNode) {
     this.selectedNodes.delete(node);
-    this.updateFocus();
+    // this.updateFocus();
   }
 
   unselectLink(link: Link) {

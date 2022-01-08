@@ -3,63 +3,49 @@
  * Messages are sent back and forth between the webview and the plugin.
  * The plugin also listen to ui events so it can notify joplin of user actions.
  * 
+ * The webview script is run not only on startup, but also each time the settings
+ * are updated or that the panel is hidden.
  */
-
-
-import {PluginEvent, PluginMessage, UIEvent, WebviewEvent, WebViewMessage} from '../../common/message'
+import {PluginEvent, PluginMessage, UIEvent, WebviewEvent, WebViewMessage, NoteSelectedWebViewMessage} from '../../common/message'
 import {didPartialModelUpdate, didFullModelUpdate, didSelectNodes, didSettingsUpdate, on, resumeAnimation } from '../../ui/graph-ui'
 
 
 declare var webviewApi : any;
 
-const init = () => {
-        // The webview is not only loaded on plugin startup, but also each time settings update.
-        // So data and settings must be requested each time the ui reloads. 
-        webviewApi.postMessage({event:WebviewEvent.GET_DATA});
-        webviewApi.postMessage({event:WebviewEvent.GET_SETTINGS});
+const initCompleted = () => {
+        webviewApi.postMessage({event:WebviewEvent.UI_READY});
 }
-
-init();
-
-poll();
 
 function poll() {
     const message : WebViewMessage = {event: WebviewEvent.ACCEPT_NEW_PLUGIN_EVENT};
-    webviewApi.postMessage(message).then(async (msg : PluginMessage) => {   
-        switch( msg.event) {
+    webviewApi.postMessage(message).then(async (pluginMessage : PluginMessage) => {
+
+        switch( pluginMessage.event) {
             case PluginEvent.NOTE_SELECTED:
-                didSelectNodes(msg.value);
+                didSelectNodes(pluginMessage.value);
                 break;
             case PluginEvent.PARTIAL_UPDATE:
-                didPartialModelUpdate(msg.value);
+                didPartialModelUpdate(pluginMessage.value);
                 break;
             case PluginEvent.FULL_UPDATE:
-                didFullModelUpdate(msg.value);
+                didFullModelUpdate(pluginMessage.value);
                 break;
-            case PluginEvent.SETTING_UPDATED:
-                didSettingsUpdate(msg.value);
+            case PluginEvent.SETTINGS_UPDATE:
+                didSettingsUpdate(pluginMessage.value);
                 break;
             case PluginEvent.RESUME_ANIMATION:
-                resumeAnimation(msg.value);
+                resumeAnimation(pluginMessage.value);
                 break;
-            case PluginEvent.SHOW_PANEL:
-                // workaround for synchronization
-                webviewApi.postMessage({event:WebviewEvent.SHOW_PANEL, value:msg.value});
         }
         poll();
     })
 }
 
 
-on(UIEvent.NOTE_SELECTED, (selection) => {
+poll();
+
+on(UIEvent.NOTE_SELECTED, (selection : NoteSelectedWebViewMessage ) => {
     webviewApi.postMessage({event:WebviewEvent.NOTE_SELECTED, value:selection});
 });
 
-on(UIEvent.GET_DATA, () => {
-    webviewApi.postMessage({event:WebviewEvent.GET_DATA});
-});
-
-on(UIEvent.GET_SETTINGS, () => {
-    webviewApi.postMessage({event:WebviewEvent.GET_SETTINGS});
-});
-
+initCompleted();

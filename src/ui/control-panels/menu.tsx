@@ -1,15 +1,15 @@
 import React from 'react';
 import SlidingPanel from 'react-sliding-side-panel';
-import { TagIndex } from '../model';
 import { ControlPanel } from './control-panel';
 import Button from '@mui/material/Button';
 
 import 'react-sliding-side-panel/lib/index.css';
 import './menu.css';
+import { Tag } from 'src/core/tag';
 
 
 type PropType = {
-    suggestions: Map<string, TagIndex>;
+    suggestions: Map<string, Tag>;
     forceProperties: any;
     allLinks : boolean;
     tagNodes: boolean;
@@ -22,26 +22,26 @@ type PropType = {
     resetForces: Function;
     openPanel: boolean;
     panelDidClose: Function;
+    panelSize: number;
   };
   
 
 const Menu = (props: PropType) => {
-  const [panelSize, setPanelSize] = React.useState<number>(15);
 
   return (
     <div  className='Graph__Menu__container'>
       <SlidingPanel
         type={'right'}
         isOpen={props.openPanel}
-        size={panelSize}
+        size={props.panelSize}
         noBackdrop={true}
         panelContainerClassName="Graph__Menu__panel_container"
         panelClassName="Graph__Menu__panel-content"
       >
         <div  id="controls" className="Graph__Menu__panel">
-            <div>
-              <Button variant="outlined" size="small" onClick={() => props.panelDidClose()}> Hide Controls</Button>
-            </div>
+              <Button id="Graph__Menu__hide-button" variant="outlined" title='hide controls' size="small" onClick={() => props.panelDidClose()}>
+              <i className="fas fa-chevron-right"></i>
+              </Button>
             < ControlPanel 
                 suggestions={props.suggestions}
                 forceProperties={props.forceProperties}

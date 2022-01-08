@@ -1,12 +1,6 @@
 /**
  * Joplin plugin entry point.
- * Events and data are serialized and sent to the webview.
- *
- * Some problems with the current joplin API :
- * - Tags updates are not triggering note updates
- * - Note deletion are not triggering a note deleted event.
- * - some actions are not triggering events but do affect plugins :
- * for example, going to settings screen and back will not restore the plugin state.
+ * Manages data and refresh UI.
  */
 
 import joplin from "api";
@@ -16,27 +10,41 @@ import {
   PluginMessage,
   WebviewEvent,
   WebViewMessage,
-  WebviewNoteSelectedMessage,
+  NoteSelectedWebViewMessage,
 } from "./common/message";
 import Graph from "./core/graph";
 import { LOCAL_GRAPH_ID } from "./core/definitions";
-import { registerSettings, pluginSettings } from "./joplin/joplin-settings";
+import {
+  registerPluginSettings,
+  PLUGIN_SETTINGS,
+} from "./joplin/joplin-settings";
 import { ToolbarButtonLocation } from "api/types";
-import { SettingLabel } from "./core/settings";
+import { Setting, SettingLabel } from "./core/settings";
+import GraphUpdate from "./core/graph-update";
+import Node, { NODE_TYPE } from "./core/node";
+import Link, { LINK_TYPE } from "./core/link";
+import {same} from "fast-array-diff";
+import { Tag } from "./core/tag";
 
 const dataManager = JoplinDataManager.instance();
 
 let pollResponse = null;
 let webviewNotifications = [];
 
-//we store a graph in the plugin process to manage repeated note updates.
+let panel: string;
+let active: boolean;
+let activeUpdateId: NodeJS.Timeout;
+let UPDATE_INTERVAL: number;
+let UPDATE_TAGS: boolean = true;
+let ASYNC_TAG_UPDATE = true;
+let cursor: string = null;
+
+const pluginSettings = new Map<SettingLabel, Setting>();
 const graphId = LOCAL_GRAPH_ID;
 const graph = new Graph(graphId);
-let panel: string;
-let showPanel = true;
+let openedNoteId: string;
 
 async function createPanel() {
-
   panel = await joplin.views.panels.create("graph");
   await joplin.views.panels.setHtml(
     panel,
@@ -53,138 +61,88 @@ async function createPanel() {
   joplin.views.panels.addScript(panel, "./joplin/webview/webview.js");
   joplin.views.panels.addScript(panel, "./index.css");
 
-  await joplin.views.panels.show(panel, showPanel);
+  await joplin.views.panels.show(panel, active);
 
   joplin.views.panels.onMessage(panel, async (message: WebViewMessage) => {
     switch (message.event) {
-      case WebviewEvent.ACCEPT_NEW_PLUGIN_EVENT: {
-        // ui is ready for new updates
+      case WebviewEvent.ACCEPT_NEW_PLUGIN_EVENT: { // ui is ready for new updates
         let p = new Promise((resolve) => {
           pollResponse = resolve;
         });
         sendPluginMessage();
         return p;
       }
+      case WebviewEvent.UI_READY: {
+        if (active) {
+
+          //lazy load the data
+          if(!cursor) {
+            //For large graphs, we could send updates in successive batches to reduce time to first draw.
+            graph.nodes = await dataManager.getAllNodes();
+            await updateTags();
+          }
+
+          resumeUpdates();
+          
+          notifyWebview({ 
+            event: PluginEvent.SETTINGS_UPDATE,
+            value: Array.from(pluginSettings.values())
+          });
+
+          notifyWebview({
+            event: PluginEvent.FULL_UPDATE,
+            value: graph,
+          });
+
+        }
+        else { // startup or user has exited settings page 
+          pauseUpdates();
+          notifyWebview({ event: PluginEvent.RESUME_ANIMATION, value: false });
+        }
+        break;
+      }
       case WebviewEvent.NOTE_SELECTED: {
-        const msg = message as WebviewNoteSelectedMessage;
+        const msg = message as NoteSelectedWebViewMessage;
         if (msg.value?.openNoteId) {
           joplin.commands.execute("openNote", msg.value.openNoteId);
         }
         break;
       }
-      case WebviewEvent.GET_DATA: {
-        if(!showPanel) {
-          //optimization. webview is reinitialized each time the panel visibility changes.
-          return;
-        }
-        graph.nodes = await dataManager.getAllNodes();
-        notifyWebview({ event: PluginEvent.FULL_UPDATE, value: graph.nodes });
-        break;
-      }
-      case WebviewEvent.GET_SETTINGS: {
-        if(!showPanel) {
-          //optimization. webview is reinitialized each time the panel visibility changes.
-          return;
-        }
-        //collect settings from joplin
-        const values = await Promise.all(
-          Object.keys(pluginSettings).map(key => {
-            return joplin.settings.value(key);
-          })
-        );
-
-        // we use settings' labels rather than keys to decouple ui from joplin
-        const settings = Object.values(pluginSettings).map((value, index) => {
-          return { key: value.label, value: values[index] };
-        });
-
-        notifyWebview({ event: PluginEvent.SETTING_UPDATED, value: settings });
-        break;
-      }
-      case WebviewEvent.SHOW_PANEL: {
-        await joplin.views.panels.show(panel, message.value);
-      }
     }
   });
 
-  //note selected in the editor
+  /* user has selected notes in the editor */
   joplin.workspace.onNoteSelectionChange(async (event: any) => {
-    let noteIds = event.value;
-
-    if(!showPanel) {
-      //optimization. webview is reinitialized each time the panel visibility changes.
+    if (!active) {
       return;
     }
+    let noteIds = event.value;
 
-    //TODO Change when Joplin API is fixed.
-    //deletion are not notified via the api but trigger a note reselect when happening through editing
-    //so we trigger a full refresh each time.
-    //this is not great but a temporary workaround.
-    graph.nodes = await dataManager.getAllNodes();
-    notifyWebview({ event: PluginEvent.FULL_UPDATE, value: graph.nodes });
-
+    if (noteIds.length == 1) {
+      openedNoteId = noteIds[0];
+    }
     notifyWebview({ event: PluginEvent.NOTE_SELECTED, value: noteIds });
   });
 
-  joplin.workspace.onNoteChange(async (event: any) => {
-
-    if(!showPanel) {
-      //optimization. webview is reinitialized each time the panel visibility changes.
-      return;
-    }
-
-    if (event.event == 1) {
-      const node = await dataManager.getNode(event.id);
-      graph.nodes.set(node.id, node);
-      notifyWebview({
-        event: PluginEvent.PARTIAL_UPDATE,
-        value: { graphId: graphId, add: [node] },
-      });
-    } else if (event.event == 2) {
-      // when editing a note, the plugin gets notified after each keystroke sequence,
-      // and would trigger constant graph refresh.
-      // we prevent that behavior if the metadata we track are not modified.
-      const old = graph.nodes.get(event.id);
-      const node = await dataManager.getNode(event.id);
-      
-      if (JSON.stringify(old) === JSON.stringify(node)) {
-        return;
-      }
-      graph.nodes.set(node.id, node);
-      notifyWebview({
-        event: PluginEvent.PARTIAL_UPDATE,
-        value: { graphId: graphId, update: [node] },
-      });
-    } else if (event.event == 3) {
-      graph.nodes.delete(event.id);
-      notifyWebview({
-        event: PluginEvent.PARTIAL_UPDATE,
-        value: { graphId: graphId, delete: [event.id] },
-      });
-      // This is never triggered by Joplin. Bug in joplin API?
-    }
-  });
-
+  /* user has changed plugin settings */
   await joplin.settings.onChange(async (event: any) => {
-    const values = await Promise.all(
-      event.keys.map((key: string) => joplin.settings.value(key))
-    );
+    await updateUserSettings(event.keys as SettingLabel[]);
 
-    let keys = event.keys.map( (key : string) => pluginSettings[key].label);
+    UPDATE_INTERVAL = pluginSettings.get(SettingLabel.UPDATE_INTERVAL).value as number;
 
-    const settings = keys.map((key: string, index : number) => {
-      return { key: key, value: values[index] };
-    });
-    notifyWebview({ event: PluginEvent.SETTING_UPDATED, value: settings });
+    if(event.keys.includes(SettingLabel.UPDATE_INTERVAL)) {
+      resumeUpdates();
+    }
   });
 }
 
+/* Enqueue message to be sent */
 async function notifyWebview(msg: PluginMessage) {
   webviewNotifications.push(msg);
   sendPluginMessage();
 }
 
-//webview ready and plugin has messages to push
+/* Process next message */
 async function sendPluginMessage() {
   if (pollResponse && webviewNotifications.length > 0) {
     let notification = webviewNotifications.shift();
@@ -193,30 +151,222 @@ async function sendPluginMessage() {
   }
 }
 
+/* startup */
 joplin.plugins.register({
   onStart: async function () {
 
-    await registerSettings();
+    await registerPluginSettings();
+    await updateUserSettings(Object.keys(PLUGIN_SETTINGS) as SettingLabel[]);
 
-    showPanel = await joplin.settings.value(SettingLabel.SHOW_ON_START);
-    if(showPanel) {
-      createPanel();
-    }
-    
-    await joplin.commands.register({
-      name: 'showGraph',
-      label: 'Show/Hide Graph',
-      iconName: 'fas fa-project-diagram',
+    active = pluginSettings.get(SettingLabel.SHOW_ON_START).value as boolean;
+    UPDATE_INTERVAL = pluginSettings.get(SettingLabel.UPDATE_INTERVAL).value as number;
+
+    // fix https://github.com/agerardin/joplin-plugin-knowledge-graph/issues/12
+    createPanel();
+
+    joplin.commands.register({
+      name: "showGraph",
+      label: "Show/Hide Graph",
+      iconName: "fas fa-project-diagram",
       execute: async () => {
-        if(!panel) {
-          await createPanel();
-        }
-        showPanel = ! await joplin.views.panels.visible(panel);
-        notifyWebview({ event: PluginEvent.RESUME_ANIMATION, value: showPanel });
-        //asynchronously hiding the panel prevents the webview to pause the canvas animation so we need to synchronize
-        notifyWebview({ event: PluginEvent.SHOW_PANEL, value: showPanel });
+        togglePluginState();
       },
     });
-    await joplin.views.toolbarButtons.create('showGraph', 'showGraph', ToolbarButtonLocation.NoteToolbar);
+
+    joplin.views.toolbarButtons.create(
+      "showGraph",
+      "showGraph",
+      ToolbarButtonLocation.NoteToolbar
+    );
+
+    joplin.workspace.selectedNoteIds().then((noteIds) => {
+      if (noteIds.length == 1) {
+        openedNoteId = noteIds[0];
+      }
+    });
   },
 });
+
+/* show/hide the panel */
+async function togglePluginState() {
+  active = !active;
+  await showPanel(active);
+  notifyWebview({ event: PluginEvent.RESUME_ANIMATION, value: active });
+}
+
+/* stop fetching updates */
+function pauseUpdates() {
+  clearInterval(activeUpdateId);
+  activeUpdateId = null;
+}
+
+/* schedule updates */
+function resumeUpdates() {
+  
+  if (activeUpdateId) {
+    clearInterval(activeUpdateId);
+  }
+
+  activeUpdateId = setInterval(async () => {
+
+    const recoveryCursor = cursor;
+
+    try {
+
+    let { updates, cursor: updatedCursor } = await dataManager.getNoteUpdates(
+      cursor
+    );
+    cursor = updatedCursor;
+
+    let graphUpdate: GraphUpdate = new GraphUpdate(graphId);
+
+    let node = null;
+
+    for(const update of updates) {
+      switch (update.type) {
+        case 1: //add
+          node = await dataManager.getNode(update.item_id);
+          graphUpdate.add.push(node);
+          graph.nodes.set(update.item_id, node);
+          break;
+        case 2: //update
+          node = await dataManager.getNode(update.item_id);
+          if(update.item_id == openedNoteId) {
+              const old = graph.nodes.get(update.item_id);
+              if (JSON.stringify(old) === JSON.stringify(node)) {
+                break;
+              }
+          }
+          graphUpdate.update.push(node);
+          graph.nodes.set(update.item_id, node);
+          break;
+        case 3: //delete
+          graphUpdate.delete.push(update.item_id);
+          graph.nodes.delete(update.item_id);
+          break;
+      }
+    };
+
+    if(UPDATE_TAGS) {
+      (ASYNC_TAG_UPDATE) ? asyncTagUpdates() : await syncTagUpdates(graphUpdate);
+    }
+
+    if(!graphUpdate.isEmpty()) {
+      notifyWebview({
+        event: PluginEvent.PARTIAL_UPDATE,
+        value: graphUpdate,
+      }); 
+    }
+  }
+  catch(error) {
+    console.error('data update failed.', error);
+    cursor = recoveryCursor;
+  }
+
+  }, UPDATE_INTERVAL);
+}
+
+/* merging tags and notes updates  */
+async function syncTagUpdates(graphUpdate : GraphUpdate) {
+
+  const graphUpdateTags = await updateTags();
+
+  graphUpdate.add.push(...graphUpdateTags.add);
+  graphUpdate.update.push(...graphUpdateTags.update);
+  graphUpdate.delete.push(...graphUpdateTags.delete);
+
+  graphUpdate.tagIndex = graphUpdateTags.tagIndex;
+}
+
+/* sending tag updates asynchronously  */
+async function asyncTagUpdates() {
+  updateTags().then((graphUpdate : GraphUpdate) => {
+    if(!graphUpdate.isEmpty()) {
+      notifyWebview({
+        event: PluginEvent.PARTIAL_UPDATE,
+        value: graphUpdate,
+      }); 
+    }
+  });
+}
+
+async function showPanel(show: boolean) {
+  await joplin.views.panels.show(panel, show);
+}
+
+async function updateUserSettings(settings: SettingLabel[]) {
+  
+  const values = await Promise.all(
+    settings.map((key) => {
+      return joplin.settings.value(key);
+    })
+  );
+
+  const updatedSettings = settings.map((key, index) => {
+    const setting = new Setting(key, values[index]);
+    pluginSettings.set(key, setting);
+    return setting;
+  });
+
+  notifyWebview({ event: PluginEvent.SETTINGS_UPDATE, value: updatedSettings});
+}
+
+/* Fetch tag updates from joplin.
+ * Scale linearly with the amount of tagged notes.
+ * Temporary workaround until joplin `events` endpoint supports tags.
+ */
+async function updateTags() : Promise<GraphUpdate> {
+
+  let tags = await dataManager.getTags();
+
+  let updatedTagIndex = new Map<string, Tag>();
+  const results = await Promise.all(Array.from(tags).map( tag => dataManager.getNodeIdsForTag(tag)));
+  results.forEach( (nodeIds, index) => 
+    updatedTagIndex.set(tags[index].label, {... tags[index], nodeIds: nodeIds})
+  );
+  
+  const graphUpdate = new GraphUpdate(graphId);
+
+  graph.tagIndex.forEach( (value, key) => {
+    if(!updatedTagIndex.has(key)) { //delete
+      graph.nodes.delete(key);
+      graph.tagIndex.delete(key);
+      graphUpdate.delete.push(value.id);
+    }
+  });
+
+  updatedTagIndex.forEach( (tag, key) => {
+    if(graph.tagIndex.has(key)) { //update
+      const node = graph.nodes.get(tag.id);
+      let diff = same(graph.tagIndex.get(key).nodeIds, tag.nodeIds);
+      if(diff.length !== tag.nodeIds.length) {
+        node.rel = tag.nodeIds.map(nodeId => {
+          const link = new Link(tag.id, nodeId, "TAG");
+          return link;
+        });
+        graph.nodes.set(tag.id, node);
+        graph.tagIndex.set(key, tag);
+        graphUpdate.update.push(node);
+      }
+    }
+    else { //add
+      let node = new Node(tag.id);
+      node.label = tag.label;
+      node.type = NODE_TYPE.TAG;
+      node.tags = new Set([tag.label]);
+      
+      node.rel = tag.nodeIds.map(nodeId => new Link(tag.id, nodeId, "TAG"));
+
+      graph.nodes.set(tag.id, node);
+      graph.tagIndex.set(key, tag);
+      graphUpdate.add.push(node);
+    }
+  });
+
+  if(!graphUpdate.isEmpty()) {
+    graphUpdate.tagIndex = updatedTagIndex;
+  }
+
+  return graphUpdate;
+}
+

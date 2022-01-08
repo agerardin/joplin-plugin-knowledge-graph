@@ -17,6 +17,6 @@
 /* controls floating button */
 #control{
 	position:fixed;
-	top:1rem;
+	top:0.25rem;
 	right:0.5rem;
 }

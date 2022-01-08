@@ -16,14 +16,12 @@ describe("Joplin Data API", () => {
         expect(truncated).toBe(false);
     })
 
-
     it("return all notes up to maxNotes cutoff", async () => {
         let api = JoplinDataApi.instance();
         let {results, truncated} = await api.getNotes(query, 4);
         expect(results.length).toBe(4);
         expect(truncated).toBe(true);
     })
-
 
     it("return one note by id", async () => {
         let api = JoplinDataApi.instance();

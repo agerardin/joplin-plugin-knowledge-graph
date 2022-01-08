@@ -1,4 +1,5 @@
 import joplin from 'api';
+import { Tag } from 'src/core/tag';
 import Note, { parseJoplinNote } from "./note";
 
 export interface QueryParams {
@@ -35,6 +36,34 @@ export default class JoplinDataApi {
 
     public getSelectedNoteIds() : Promise<Array<string>> {
         return joplin.workspace.selectedNoteIds();
+    }
+
+    public async getTags() : Promise<Tag[]> {
+        let tags = [];
+        let page : any;
+        let query = {fields: ["id", "title"]};
+        do {
+            page = await joplin.data.get(['tags'], query);
+            tags.push(...page.items.map( (item : any) => { 
+                return {id: item.id, label: item.title } 
+            }));
+        }
+        while (page.has_more)
+
+        return tags;
+    }
+
+    public  async getNoteIdsForTag(tag: any) : Promise<string[]> {
+        let noteIds = [];
+        let page : any;
+        let query = {fields: ["id"]};
+        do {
+            page = await joplin.data.get(['tags', tag.id, 'notes'], query);
+            noteIds.push(...page.items.map((item : any) => item.id));
+        }
+        while (page.has_more)
+
+        return noteIds;
     }
 
     /**
@@ -125,6 +154,27 @@ export default class JoplinDataApi {
         const notes = await Promise.all(joplinNotes.map( async (note) => this.buildNote(note)));
 
         return {results: notes, idsNotFound: idsNotFound, truncated: false};
+    }
+
+    public async getNoteUpdates(cursor? : string) : 
+    Promise <{
+              updates: any[];
+              cursor: string;
+             }> 
+    {
+        const updates = []; 
+        let response = null;
+        do {
+            response = (cursor) ? 
+                await joplin.data.get(['events'], {cursor} )
+                : await joplin.data.get(['events']);
+
+            updates.push(...response.items);
+            cursor = response.cursor;
+        }
+        while(response.has_more);
+
+        return { updates, cursor };
     }
 
     public async getNote(query: any, id: string) : Promise<Note> {

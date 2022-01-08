@@ -9,9 +9,9 @@ import * as d3 from "d3";
 
 import { ID } from "../core/definitions";
 import Link from "../core/link";
-import Node from "../core/node";
+import Node, { NODE_TYPE } from "../core/node";
 import GraphUpdate from "../core/graph-update";
-import { Filter,  FilterKey, Model, TagIndex} from "./model";
+import { Filter,  FilterKey, Model} from "./model";
 import { UIEvent } from "../common/message";
 import { onEngineTick, onEngineStop } from "./control-panels/control-panel";
 import GraphNode from "./graph-node";
@@ -20,15 +20,23 @@ import Menu from './control-panels/menu';
 import Button from '@mui/material/Button';
 
 import './graph-ui.css'
+import { Tag } from "src/core/tag";
+import Graph from "src/core/graph";
+import { Color, HSLColor, RGBColor } from "d3";
 
-const  model = new Model();
+
 const elem = document.getElementById("graph");
 let graph = ForceGraph()(elem);
+const  model = new Model(graph);
 
 let simulationTicksCounter = 0;
 
-let FONT_SIZE = 3; 
-let RELATIVE_NODE_SIZE = true;
+let FONT_SIZE = 4; 
+let WEIGTHED_LABEL = true;
+let PAINT_PHOTONS_ON_CLICK = true;
+let PAINT_PHOTONS_ON_HOVER = true;
+let MENU_PANEL_SIZE = 15;
+
 let graphListeners: Map<UIEvent, Function> = new Map();
 
 let SHOW_MENU = true;
@@ -38,18 +46,6 @@ let SHOW_ALL_LINKS = true;
 
 setupForceGraph();
 
-const control = (
-  <div>
-    { !SHOW_MENU && <Button variant="outlined" size="small" onClick={() => { SHOW_MENU = true; showMenu(SHOW_MENU) }}>Controls</Button>}
-  </div>
-  );
-
-  
-render(
-  control,
-  document.getElementById("control")
-);
-
 window.addEventListener(
   "resize",
   function (_) {
@@ -58,11 +54,15 @@ window.addEventListener(
   true
 );
 
-function showMenu(show: boolean) {
+const toggleMenu = () => {
+  SHOW_MENU = !SHOW_MENU; updateReactMenuComponent(SHOW_MENU);
+};
+
+function updateReactMenuComponent(show: boolean) {
 
   const menu = 
   < Menu 
-    suggestions={model.tags}
+    suggestions={model.tagIndex}
     forceProperties={model.forceProperties}
     allLinks={SHOW_ALL_LINKS}
     tagNodes={SHOW_TAG_NODES}
@@ -74,7 +74,8 @@ function showMenu(show: boolean) {
     updateForceProperties={updateForceProperties}
     resetForces={resetForces}
     openPanel={show}
-    panelDidClose={()=> {SHOW_MENU = !SHOW_MENU; showMenu(SHOW_MENU)}}
+    panelDidClose={toggleMenu}
+    panelSize={MENU_PANEL_SIZE}
   />;
     
   render(
@@ -84,10 +85,12 @@ function showMenu(show: boolean) {
 
  const control = (
   <div>
-    { !SHOW_MENU && <Button variant="outlined" size="small" onClick={() => { SHOW_MENU = true; showMenu(SHOW_MENU) }}>Controls</Button>}
+    { !SHOW_MENU &&
+      <Button variant="outlined" size="small" title='show controls' onClick={toggleMenu}>
+        <i className="fas fa-chevron-left"></i>
+      </Button>}
   </div>
   );
-
   
   render(
     control,
@@ -126,7 +129,7 @@ export function didSelectNodes(nodeIds: ID[]) {
     centroid = {x:centroid.x / nodeIds.length, y:centroid.y / nodeIds.length};
   }
 
-  graph.centerAt(centroid.x,centroid.y, 300).zoom(5, 300);
+  graph.centerAt(centroid.x,centroid.y, 300);
   model.clearSelection();
 
   validNodes.forEach((node) => model.selectNode(node));
@@ -134,34 +137,33 @@ export function didSelectNodes(nodeIds: ID[]) {
 
 /** Apply explicit diff updates on nodes */
 export function didPartialModelUpdate(update: GraphUpdate) {
-
   const nodeIds = [];
-  
   update.delete?.forEach((del) => model.nodes.delete(del));
-  update.add?.forEach((add) => { 
+  update.add?.forEach((add) => {
     model.nodes.set(add.id, new GraphNode(add));
     nodeIds.push(add.id) 
   });
   update.update?.forEach((update) => {
     const node = model.nodes.get(update.id);
-    Object.assign(node, update);
+    // data api collapses add/update so node may not exists
+    (node) ? Object.assign(node, update) : model.nodes.set(update.id, new GraphNode(update));
     nodeIds.push(update.id);
   });
 
-  rebuildTagsIndex();
+  updateTagIndex(update.tagIndex);
   const graphData = buildGraphData();
   didGraphDataUpdate(graphData);
   didSelectNodes(nodeIds);
 }
 
 /** Apply implicit diff between the old model and the new one for smooth transition */
-export function didFullModelUpdate(nodes: Map<ID, Node>) {
+export function didFullModelUpdate(graph: Graph) {
   model.nodes.forEach((del) => {
-    if (!nodes.has(del.id)) {
+    if (!graph.nodes.has(del.id)) {
       model.nodes.delete(del.id);
     }
   });
-  nodes.forEach((update) => {
+  graph.nodes.forEach((update) => {
     if (!model.nodes.has(update.id)) {
       model.nodes.set(update.id, new GraphNode(update));
     } else {
@@ -170,7 +172,7 @@ export function didFullModelUpdate(nodes: Map<ID, Node>) {
     }
   });
 
-  rebuildTagsIndex();
+  updateTagIndex(graph.tagIndex);
   const graphData = buildGraphData();
   didGraphDataUpdate(graphData);
 }
@@ -178,18 +180,13 @@ export function didFullModelUpdate(nodes: Map<ID, Node>) {
 export function didSettingsUpdate(settings : Setting[]) {
   settings.forEach( (setting : any) => {
     applySetting(setting);
-  }
-  )
+  });
 }
-
 
 function showAllLinks(show: boolean) {
 
   SHOW_ALL_LINKS = show;
-  
-  if(SHOW_MENU) {
-    showMenu(SHOW_MENU);
-  }
+  updateReactMenuComponent(SHOW_MENU);
 
   model.showAllLinks = show;
   if (!model.showAllLinks) {
@@ -202,15 +199,12 @@ function showAllLinks(show: boolean) {
 function showTagNodes(show: boolean) {
 
   SHOW_TAG_NODES = show;
-
-  if(SHOW_MENU) {
-    showMenu(SHOW_MENU);
-  }
+  updateReactMenuComponent(SHOW_MENU);
 
   model.showTagNodes = show;
   model.nodeFilters = model.nodeFilters.filter((filter : Filter) => filter.name !== FilterKey.TAG_NODE);
   if (!model.showTagNodes) {
-    model.nodeFilters.push( {name: FilterKey.TAG_NODE, filter: (node: GraphNode) => node.type != "tag"} );
+    model.nodeFilters.push( {name: FilterKey.TAG_NODE, filter: (node: GraphNode) => node.type != NODE_TYPE.TAG} );
   }
   const graphData = buildGraphData();
   didGraphDataUpdate(graphData);
@@ -219,10 +213,7 @@ function showTagNodes(show: boolean) {
 function showOnlySelectedNodes(show: boolean) {
 
   SHOW_ONLY_SELECTED = show;
-
-  if(SHOW_MENU) {
-    showMenu(SHOW_MENU);
-  }
+  updateReactMenuComponent(SHOW_MENU);
 
   model.nodeFilters = model.nodeFilters.filter((filter : Filter) => filter.name !== FilterKey.ONLY_SELECTED_NODE);
   if (show) {
@@ -236,7 +227,7 @@ function tagSelectionChanged(tags: any[]) {
   model.nodeFilters = model.nodeFilters.filter((filter : Filter) => filter.name !== FilterKey.TAG_SELECTION);
   if(tags.length > 0) {
     model.nodeFilters.push( {name: FilterKey.TAG_SELECTION, filter: (node: GraphNode) => {
-      const found = tags.findIndex(tag => (node.type == 'tag' && node.id == tag.id) || node.tags.has(tag.id)) != -1
+      const found = tags.findIndex(tag => (node.type == NODE_TYPE.TAG && node.id == tag.id) || node.tags.has(tag.id)) != -1
       return found;
     }
    });
@@ -246,58 +237,49 @@ function tagSelectionChanged(tags: any[]) {
 }
 
 function updateForceProperties(updatedForceProperties) {
-
   model.forceProperties = updatedForceProperties;
-
-  if(SHOW_MENU) {
-    showMenu(SHOW_MENU);
-  }
-
+  updateReactMenuComponent(SHOW_MENU);
   updateForces();
 
 }
 
 function updateForces() {
-
   graph.d3Force("center")
       .x(model.width * model.forceProperties.center.x * (model.forceProperties.center.enabled === true ? 1 : 0))
       .y(model.height * model.forceProperties.center.y * (model.forceProperties.center.enabled === true ? 1 : 0));
-      graph.d3Force("charge")
+  
+  graph.d3Force("charge")
       .strength(model.forceProperties.charge.strength * (model.forceProperties.charge.enabled === true ? 1 : 0) )
       .distanceMin(model.forceProperties.charge.distanceMin)
-      .distanceMax(model.forceProperties.charge.distanceMax);
-      graph.d3Force("collide")
+      .distanceMax(model.forceProperties.charge.distanceMax.value);
+  
+  graph.d3Force("collide")
       .strength(model.forceProperties.collide.strength * (model.forceProperties.collide.enabled === true ? 1 : 0) )
       .radius(model.forceProperties.collide.radius)
       .iterations(model.forceProperties.collide.iterations);
 
-      if(!model.forceProperties.link.enabled) {
-        graph.d3Force("link",null);
-        graph.d3Force("forceX").strength(0);
-        graph.d3Force("forceY").strength(0);
-      }
-      else {
-        //workaround weird bug in force-graph were model updates are debounced and nodes may not be available
-        //when applying the link force.
-        graph.graphData(graph.graphData());
-        graph.d3Force("link", d3.forceLink(graph.graphData().links as any) as any)
-        graph.d3Force("forceX")
-        .strength(model.forceProperties.forceX.strength * (model.forceProperties.forceX.enabled === true ? 1 : 0) )
-        .x(model.forceProperties.forceX.x);
-        graph.d3Force("forceY")
-        .strength(model.forceProperties.forceY.strength * (model.forceProperties.forceY.enabled === true ? 1 : 0) )
-        .y(model.forceProperties.forceY.y);
-      }
+  if(!model.forceProperties.link.enabled) {
+    graph.d3Force("link",null);
+    graph.d3Force("forceX").strength(0);
+    graph.d3Force("forceY").strength(0);
+  }
+  else {
+    graph.d3Force("link", d3.forceLink(graph.graphData().links as any) as any)
+    graph.d3Force("forceX")
+    .strength(model.forceProperties.forceX.strength * (model.forceProperties.forceX.enabled === true ? 1 : 0) )
+    .x(model.forceProperties.forceX.x);
+    graph.d3Force("forceY")
+    .strength(model.forceProperties.forceY.strength * (model.forceProperties.forceY.enabled === true ? 1 : 0) )
+    .y(model.forceProperties.forceY.y);
+  }
 
   graph.d3ReheatSimulation();
   simulationTicksCounter = 0;
-
-  
 }
 
 function resetForces() {
   model.resetForces();
-  updateForceProperties(model.forceProperties);
+ updateForceProperties(model.forceProperties);
 }
 
 function notifyListener(event: UIEvent, value?: any) {
@@ -316,44 +298,11 @@ function setGraphDimensions() {
   graph.height(model.height);
 }
 
-function rebuildTagsIndex() {
-
-  //delete tag nodes
-  model.tags.forEach((index) => {
-    model.nodes.delete(index.tagNodeId);
-  });
-
-  const tags = new Map<string,TagIndex>();
-
-  // collect all tags and count number of occurences
-  model.nodes.forEach((node) => {
-    node.tags.forEach((tag) => {
-      let tagIndex = tags.get(tag);
-      if (!tagIndex) {
-        let tagNode = new Node(tag);
-        tagNode.label = tag;
-        tagNode.type = "tag";
-        model.nodes.set(tagNode.id, new GraphNode(tagNode));
-        tagIndex = { tagNodeId: tagNode.id, count: 0 };
-        tags.set(tag, tagIndex);
-      }
-      tagIndex.count++;
-      // create a link from tagNode to node
-      let tagNode = model.nodes.get(tagIndex.tagNodeId);
-      const link = {
-        label: tag,
-        sourceId: tagNode.id,
-        targetId: node.id,
-        type: "tag",
-      };
-      tagNode.rel.push(link);
-    });
-  });
-
-  model.tags = tags;
+function updateTagIndex(tagIndex : Map<string, Tag>) {
+  model.tagIndex = tagIndex;
 
   if(SHOW_MENU) {
-    showMenu(SHOW_MENU);
+    updateReactMenuComponent(SHOW_MENU);
   }
 }
 
@@ -381,7 +330,19 @@ function buildGraphData() {
         .filter(link => applyFilters(link, model.linkFilters))
         // !IMPORTANT we pass forceGraph a Link object so we can access the object attributes when drawing
         // however forceGraph will overwrite source and target attributes with full reference to nodes.
-        .map( link => Object.assign(link, {source: link.sourceId, target: link.targetId, label:`${model.nodes.get(link.sourceId).label}->${model.nodes.get(link.targetId).label}`}, ))
+        .map( (link: any) => 
+          link.source && link.target
+          ? link
+          : Object.assign(link, 
+            {
+              source: link.sourceId,
+              target: link.targetId,
+              type:link.type,
+              label:`${model.nodes.get(link.sourceId).label}
+                    ->
+                    ${model.nodes.get(link.targetId).label}`
+            })
+        )
     );
   });
 
@@ -396,7 +357,6 @@ function buildGraphData() {
     model.nodes.get(link.sourceId).links.push(link);
     model.nodes.get(link.targetId).backlinks.push(link);
   });
-
 
   addCurvature(graphData);
 
@@ -418,46 +378,27 @@ function didGraphDataUpdate(graphData: GraphData) {
 
 function setupForceGraph() {
   graph
-    .linkHoverPrecision(4)
+    .linkHoverPrecision(8)
+    .nodeRelSize(1)
+    .nodeVal((node: GraphNode) => {
+      return getNodeWeigth(node);
+    })
     .backgroundColor(model.style.background)
     .linkWidth(() => model.style.link.width)
-    .linkDirectionalParticleSpeed(0.01)
-    .linkDirectionalParticles(1)
-    .linkDirectionalParticleWidth((link: Link) =>
-      getLinkState(link) === GraphObjectState.HIGHLIGHTED
-        ? model.style.link.particleWidth
-        : 0
-    )
-    .linkColor((link) => {
-      const linkState = getLinkState(link as Link);
-      return getLinkColor(linkState, link as Link);
+    .nodeColor((node: GraphNode) => {
+      const nodeState = getNodeState(node);
+      const {fill} = getNodeColor(nodeState, node);
+      return fill.toString();
+    })
+    .linkColor((link: Link) => {
+      const linkState = getLinkState(link);
+      return getLinkColor(linkState, link);
     })
     .linkCurvature("curvature")
     .nodeCanvasObject((node: NodeObject & GraphNode, ctx, globalScale) => {
-      const label = node.label;
-      const size = getNodeSize(node);
-      const nodeState = getNodeState(node);
-      const { fill, border } = getNodeColor(nodeState, node);
-      const labelX = node.x;
-      const labelY = node.y + size + 1;
-      const fontSize = RELATIVE_NODE_SIZE ? FONT_SIZE  * getLabelScaledSize(size) : FONT_SIZE;
-      ctx.font = `${fontSize}px Sans-Serif`;
-      Draw(ctx)
-        .circle(node.x, node.y, size + 0.2, border) // border not handled by default
-        .circle(node.x, node.y, size, fill)
-        .text(label, labelX, labelY, fontSize, getLabelColor(nodeState));
-      // const tooltipWidth = 40, tooltipHeight = 20;
-      if (model.hoveredNode === node) {
-        const descriptionSize = fontSize / 2;
-        ctx.font = `${descriptionSize}px Sans-Serif`;
-        ctx.fillStyle = d3
-          .rgb(model.style.node.color)
-          .copy({ opacity: 0.5 })
-          .toString();
-        ctx.fillText(node.id, labelX, labelY + fontSize, 40);
-        // ctx.fillRect(labelX - tooltipWidth / 2, labelY + size, tooltipWidth, tooltipHeight);
-      }
-    });
+      paintNode(node, ctx, globalScale);
+    })
+    .nodeCanvasObjectMode(() => 'after');
 
     graph
       .d3Force("link", d3.forceLink() as any)
@@ -466,14 +407,18 @@ function setupForceGraph() {
       .d3Force("center", d3.forceCenter() as any)
       .d3Force('forceX', d3.forceX() as any)
       .d3Force('forceY', d3.forceY() as any)
-      .warmupTicks(20)
-      .cooldownTicks(500)
-      .cooldownTime(4000);
+
+    graph
+    .autoPauseRedraw(true);
 
   graph.onEngineTick(() => {
+    /* cannot take into account cooldownTime since there is 
+     * no way to know the elapsed time as computed by the simulation
+     */
     let tick = simulationTicksCounter++;
     let maxTicks = graph.cooldownTicks();
-    onEngineTick(tick, maxTicks);
+    let progress = (tick * 100 / maxTicks);
+    onEngineTick(progress);
   });
 
   graph.onEngineStop(() => {
@@ -488,12 +433,84 @@ function setupForceGraph() {
     .onNodeHover((node: GraphNode) => {
       handleNodeHover(node);
     })
+    .onNodeDrag((node: GraphNode) => {
+      handleNodeDrag(node);
+    })
     .onBackgroundClick((event) => {
       handleBackgroundClick(event);
     });
 
   setGraphDimensions();
 }
+
+function paintNode(node: GraphNode, ctx : CanvasRenderingContext2D, globalScale: number) {
+  /* label size */
+  const nodeRelSize = graph.nodeRelSize(); //relative scale between nodes & links
+  const size = nodeRelSize * 0.5 * getNodeWeigth(node); //relative scale between nodes based on weight
+  //TODO can add extra control if too much
+  const scaledLabel = FONT_SIZE / (globalScale * getNodeSize(getNodeWeigth(node)))  //scale label depending on zoom level
+  const labelSize = WEIGTHED_LABEL ?  scaledLabel * controlLabelSizeWrtNodeSize(size) : scaledLabel * controlLabelSizeWrtNodeSize(nodeRelSize);
+
+  const labelX = node.x;
+  const labelY = node.y + size;
+  
+  /* label color */
+  const nodeState = getNodeState(node);
+  // adapt opacity based on zoom level to reduce noise
+  let labelColor = getLabelColor(node, nodeState);
+  labelColor = labelColor.copy({
+    opacity:
+      nodeState === GraphObjectState.REGULAR
+        ? getNodeLabelOpacity(globalScale) * getNodeLabelOpacityWrtLabelSize.invert(labelSize)
+        : nodeState === GraphObjectState.HIGHLIGHTED
+        ? 1
+        : labelColor.opacity
+  });
+
+  const label = node.label;
+
+  Draw(ctx)
+    .text(label, labelX, labelY, labelSize, labelColor.toString());
+  
+  // if (model.hoveredNode === node) {
+  //   const descriptionSize = fontSize / 2;
+  //   ctx.font = `${descriptionSize}px Sans-Serif`;
+  //   ctx.fillStyle = d3
+  //     .rgb(model.style.node.color)
+  //     .copy({ opacity: 0.5 })
+  //     .toString();
+  //   ctx.fillText(node.id, labelX, labelY + fontSize, 40);
+  //   // const tooltipWidth = 40, tooltipHeight = 20;
+  //   // ctx.fillRect(labelX - tooltipWidth / 2, labelY + size, tooltipWidth, tooltipHeight);
+  // }
+}
+
+// Opacity based on the zoom level. May need adjustment.
+const getNodeLabelOpacity = d3
+  .scaleLinear()
+  .domain([0.1, 3])
+  .range([0, 1])
+  .clamp(true);
+
+const getNodeLabelOpacityWrtLabelSize = d3
+.scaleLinear()
+.domain([1, 2])
+.range([1, 1.5])
+
+
+const controlLabelSizeWrtNodeSize = d3
+  .scaleLinear()
+  .domain([0, 30])
+  .range([1, 30])
+  .clamp(true);
+
+  const  controlLabelSizeWrtScale = d3
+  .scaleLinear()
+  .domain([0, 30])
+  .range([2, 6])
+  .clamp(true);
+
+ 
 
 //action linked to key combinations
 const multipleSelectionAction = (event: any) => event.getModifierState("Shift");
@@ -503,51 +520,85 @@ const openNoteAction = (event: any) =>
 //single or multiple selection allowed
 //ctrl click will open the note in the editor
 function handleNoteClick(node: GraphNode, event: any) {
-  if (!multipleSelectionAction(event)) {
-    model.clearSelection();
-  }
-  model.selectNode(node);
 
-  const open = openNoteAction(event);
-  const validNoteIds = Array.from(model.selectedNodes).filter(node => node.type !== 'tag').map(node => node.id);
-  const openNoteId = ( node.type !== 'tag' && open) ? node.id : undefined;
+  if(PAINT_PHOTONS_ON_CLICK) emitParticle(node);
 
-  if (graphListeners.get(UIEvent.NOTE_SELECTED)) {
-    graphListeners.get(UIEvent.NOTE_SELECTED)( {
+  if (model.selectedNodes.has(node)) {
+    model.unselectNode(node);
+  } 
+  else {
+    if (!multipleSelectionAction(event)) {
+      model.clearSelection();
+    }
+    model.selectNode(node);
+    const open = openNoteAction(event);
+    const validNoteIds = Array.from(model.selectedNodes).filter(node => node.type !== NODE_TYPE.TAG).map(node => node.id);
+    const openNoteId = ( node.type !== NODE_TYPE.TAG && open) ? node.id : undefined;
+  
+    notifyListener(UIEvent.NOTE_SELECTED, {
       noteIds: validNoteIds,
       openNoteId: openNoteId
     });
   }
+
+  animate();
+}
+
+function emitParticle(node: GraphNode) {
+  node.links.forEach( link => graph.emitParticle(link));
+  node.backlinks.forEach( link => graph.emitParticle(link));
 }
 
 function handleNodeHover(node: GraphNode) {
+  if(node && PAINT_PHOTONS_ON_HOVER) {
+    emitParticle(node);
+  }
   model.hoverNode(node);
+  animate();
+}
+
+function handleNodeDrag(node: GraphNode) {
+  model.hoverNode(node);
+  animate();
 }
 
 function handleBackgroundClick(event: MouseEvent) {
   if (!multipleSelectionAction(event)) {
     model.clearSelection();
   }
+  animate();
+}
+
+function animate() {
+  graph.nodeCanvasObject((node: NodeObject & GraphNode, ctx, globalScale) => {
+    paintNode(node, ctx, globalScale);
+  });
+  graph.nodeColor(graph.nodeColor())
 }
 
 // more importance given to connected nodes
-function getNodeSize(node: GraphNode) {
-  return getNodeScaledSize(node.links.length + node.backlinks.length);
-  
+function getNodeWeigth(node: GraphNode) {
+  return node.links.length + node.backlinks.length;
 }
+
+const getNodeSize = d3
+  .scaleLinear()
+  .domain([0, 30])
+  .range([0.5, 2])
+  .clamp(true);
 
 // define scale for node size
 const getNodeScaledSize = d3
   .scaleLinear()
-  .domain([0, 30])
-  .range([1, 10])
+  .domain([0, 20])
+  .range([1, 20])
   .clamp(true);
 
 // define scale for node size
 const getLabelScaledSize = d3
   .scaleLinear()
-  .domain([1, 10])
-  .range([1, 4])
+  .domain([1, 50])
+  .range([1, 10])
   .clamp(true);
 
 const Draw = (ctx: CanvasRenderingContext2D) => ({
@@ -581,19 +632,19 @@ const Draw = (ctx: CanvasRenderingContext2D) => ({
 });
 
 // dynamically figuring out color scheme for node labels
-function getLabelColor(nodeState: GraphObjectState): string {
-  const defaultColor = model.style.node.fontColor;
+function getLabelColor(node: GraphNode, nodeState: GraphObjectState): HSLColor {
+  let fill = d3.hsl(model.style.fontSize);
 
   switch (nodeState) {
     case GraphObjectState.HIGHLIGHTED:
-      return model.style.node.highlightedColor;
+      return d3.hsl(model.style.fontSize).brighter();
     case GraphObjectState.LESSENED:
-      return d3.rgb(defaultColor).copy({ opacity: 0.05 }).toString();
+      return fill.copy({ opacity: 0.05 });
     case GraphObjectState.HIDDEN:
-      return d3.rgb(defaultColor).copy({ opacity: 0 }).toString();
+      return fill.copy({ opacity: 0 });
     case GraphObjectState.REGULAR:
     default:
-      return defaultColor;
+      return fill;
   }
 }
 
@@ -601,35 +652,47 @@ function getLabelColor(nodeState: GraphObjectState): string {
 function getNodeColor(
   nodeState: GraphObjectState,
   node: GraphNode
-): { fill: string; border: string } {
-  let defaultColor = model.style.node.color;
-  let highlightcolor = model.style.node.highlightedColor;
+): { fill: HSLColor; border: HSLColor } {
+  let defaultColor = d3.hsl(model.style.node.color);
+  let highlightcolor = d3.hsl(model.style.node.highlightedColor);
+  let selectedColor = d3.hsl(model.style.node.selectedColor);
 
-  var isTag = node.type === "tag";
+  var isTag = node.type === NODE_TYPE.TAG;
 
   if (isTag) {
-    highlightcolor = model.style.tagNode.highlightColor;
-    defaultColor = d3.hsl(highlightcolor).darker(2).toString();
+    highlightcolor = d3.hsl(model.style.tagNode.highlightColor);
+    selectedColor = d3.hsl(model.style.tagNode.selectedColor);
+    defaultColor = d3.hsl(highlightcolor).darker(2);
   }
 
   let fill = defaultColor;
-  let border = d3.hsl(defaultColor).darker(1).toString();
+  let border = defaultColor.darker(1);
 
   switch (nodeState) {
+    case GraphObjectState.HOVERED:
+      return {
+        fill: highlightcolor,
+        border: d3.hsl(model.style.node.border.highlightedColor),
+      };
+    case GraphObjectState.SELECTED:
+      return {
+        fill: selectedColor,
+        border: d3.hsl(model.style.node.border.highlightedColor),
+      };
     case GraphObjectState.HIGHLIGHTED:
       return {
         fill: highlightcolor,
-        border: model.style.node.border.highlightedColor,
+        border: d3.hsl(model.style.node.border.highlightedColor),
       };
     case GraphObjectState.LESSENED:
       return {
-        fill: d3.rgb(fill).copy({ opacity: 0.1 }).toString(),
-        border: d3.rgb(border).copy({ opacity: 0.1 }).toString(),
+        fill: d3.hsl(fill).copy({ opacity: 0.1 }),
+        border: d3.hsl(border).copy({ opacity: 0.1 }),
       };
     case GraphObjectState.HIDDEN:
       return {
-        fill: d3.rgb(defaultColor).copy({ opacity: 0 }).toString(),
-        border: d3.rgb(defaultColor).copy({ opacity: 0 }).toString(),
+        fill: d3.hsl(defaultColor).copy({ opacity: 0 }),
+        border: d3.hsl(defaultColor).copy({ opacity: 0 }),
       };
     case GraphObjectState.REGULAR:
     default:
@@ -645,7 +708,7 @@ function getLinkColor(linkState: GraphObjectState, link: Link): string {
   let defaultColor = model.style.link.color;
   let highlightcolor = model.style.link.highlightedColor;
 
-  if (link.type == "tag") {
+  if (link.type == "TAG") {
     highlightcolor = model.style.tagNode.highlightColor;
     defaultColor = d3.hsl(highlightcolor).darker(2).toString();
   }
@@ -665,17 +728,22 @@ function getLinkColor(linkState: GraphObjectState, link: Link): string {
 }
 
 function getNodeState(node: GraphNode) {
-  return model.focusedNodes.has(node)
+  return model.selectedNodes.has(node) //selected nodes are distinguished
+    ? GraphObjectState.SELECTED 
+    : model.hoveredNode == node //hover node needs cues
+    ? GraphObjectState.HOVERED
+    : model.focusedNodes.has(node) // focused nodes are emphasized
     ? GraphObjectState.HIGHLIGHTED
-    : model.hoveredNode
+    : model.focusedNodes.size != 0 //when some nodes are in focus, de-emphasize others 
     ? GraphObjectState.LESSENED
-    : GraphObjectState.REGULAR;
+    : GraphObjectState.REGULAR; //no selection, no hover
 }
 
+//TODO add secondary links with more focus (XOR : source or target is part of the focus group but not both)
 function getLinkState(link: any) {
-  return model.focusedLinks.has(link)
+  return model.focusedLinks.has(link) //links in focus are highlighted
   ? GraphObjectState.HIGHLIGHTED
-  : model.hoveredNode
+  : model.focusedNodes.size !== 0 // if some focus, then we lessened all others
   ? GraphObjectState.LESSENED
   : GraphObjectState.REGULAR;
 }
@@ -683,10 +751,12 @@ function getLinkState(link: any) {
 // state a graph object (node, link, label) can take
 // as user interacts with the graph.
 enum GraphObjectState {
-  HIDDEN = 1,
-  LESSENED = 2,
-  REGULAR = 3,
-  HIGHLIGHTED = 4,
+  HIDDEN = 'HIDDEN',
+  LESSENED = 'LESSENED',
+  REGULAR = 'REGULAR',
+  HIGHLIGHTED = 'HIGHLIGHTED',
+  SELECTED = 'HOVERED',
+  HOVERED = 'SELECTED'
 }
 
 //taken from https://github.com/vasturiano/force-graph/blob/master/example/curved-links-computed-curvature/index.html
@@ -740,6 +810,7 @@ function addCurvature(graphData: GraphData) {
 
 
 function applySetting(setting: Setting) {
+
   switch(setting.key) {
     case SettingLabel.COOLDOWN_TICKS:
       graph.cooldownTicks(setting.value as number);
@@ -754,7 +825,21 @@ function applySetting(setting: Setting) {
       FONT_SIZE = setting.value as number;
       break;
     case SettingLabel.RELATIVE_FONT_SIZE:
-      RELATIVE_NODE_SIZE = setting.value as boolean;
+      WEIGTHED_LABEL = setting.value as boolean;
+      break;
+    case SettingLabel.PAINT_PHOTONS_ON_CLICK:
+      PAINT_PHOTONS_ON_CLICK = setting.value as boolean;
+      break;
+    case SettingLabel.PAINT_PHOTONS_ON_HOVER:
+      PAINT_PHOTONS_ON_HOVER = setting.value as boolean;
+      break;
+    case SettingLabel.SHOW_MENU_ON_START:
+      SHOW_MENU = setting.value as boolean;
+      updateReactMenuComponent(SHOW_MENU);
+      break;
+    case SettingLabel.MENU_PANEL_SIZE:
+      MENU_PANEL_SIZE = setting.value as number;
+      updateReactMenuComponent(SHOW_MENU);
       break;
   }
 }

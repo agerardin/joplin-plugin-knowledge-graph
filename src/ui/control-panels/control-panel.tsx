@@ -1,16 +1,15 @@
 import React, { useEffect, useState,useRef } from "react";
 import { Checkbox } from "./checkbox";
 import { TagsFilter } from "./tags";
-import { TagIndex } from "../model";
 import { set as lodashSet, cloneDeep } from 'lodash';
 import * as d3 from "d3";
 import Button from '@mui/material/Button';
+import { Tag } from "src/core/tag";
 
 import './control-panel.css'
 
-
 type PropType = {
-  suggestions: Map<string, TagIndex>;
+  suggestions: Map<string, Tag>;
   forceProperties: any;
   allLinks : boolean;
   tagNodes: boolean;
@@ -23,8 +22,8 @@ type PropType = {
   resetForces: Function;
 };
 
-export function onEngineTick(tick: number, maxTicks: number) {
-  d3.select('#status_value').style('flex-basis', (tick * 100 / maxTicks) + '%');
+export function onEngineTick(progress: number) {
+  d3.select('#status_value').style('flex-basis', progress + '%');
 };
 
 export function onEngineStop() {
@@ -34,7 +33,6 @@ export function onEngineStop() {
 
 
 export const ControlPanel = (props: PropType) => {
-
   const handleChange = (attribute: string, value: any) => {
     const updated = cloneDeep(props.forceProperties);
     lodashSet(updated, attribute, value);
@@ -89,9 +87,13 @@ export const ControlPanel = (props: PropType) => {
               <p></p>
             </div>
           </div>
-          <div>
-            <Button variant="outlined" size="small" onClick={() => props.updateForceProperties(props.forceProperties)}>Run</Button>
-            <Button variant="outlined" size="small" onClick={() => props.resetForces()}>Reset</Button>
+          <div className='Graph__ControlPanel_buttons'>
+            <Button variant="outlined" title="Run" size="small" onClick={() => props.updateForceProperties(props.forceProperties)}>
+              <i className="fa fa-play"></i>
+            </Button>
+            <Button variant="outlined" title="Reset" size="small" onClick={() => props.resetForces()}>
+            <i className="fas fa-redo"></i>
+            </Button>
           </div>
         </div>
  
@@ -119,11 +121,11 @@ export const ControlPanel = (props: PropType) => {
             </label>
           </div>
           <div>
-            <label title="Minimum distance where force is applied.">
+            <label title="Minimum distance at which force is applied.">
               <output id='charge.distanceMin'>distanceMin : {props.forceProperties.charge.distanceMin}</output>
               <input
                 type="range"
-                min="0"
+                min="1"
                 max="50"
                 value={props.forceProperties.charge.distanceMin}
                 step="5"
@@ -132,15 +134,17 @@ export const ControlPanel = (props: PropType) => {
             </label>
           </div>
           <div>
-          <label title="Maximum distance where force is applied">
-            <output id="charge.distanceMax">distanceMax : {props.forceProperties.charge.distanceMax}</output>
+          <label title="Maximum distance at which the force is applied">
+            <output id="charge.distanceMax.value">distanceMax : {props.forceProperties.charge.distanceMax.value < 100 ? 
+            props.forceProperties.charge.distanceMax.value :
+            props.forceProperties.charge.distanceMax.value.toExponential(0)}</output>
             <input
               type="range"
-              min={props.forceProperties.charge.distanceMaxLowerBound}
-              max={props.forceProperties.charge.distanceMaxUpperBound}
-              value={props.forceProperties.charge.distanceMax}
-              step={props.forceProperties.charge.step}
-              onChange={(e: any) => handleChange('charge.distanceMax', e.target.value)}
+              min={scale(props.forceProperties.charge.distanceMax.lowerBound)}
+              max={scale(props.forceProperties.charge.distanceMax.upperBound)}
+              value={scale(props.forceProperties.charge.distanceMax.value)}
+              step={props.forceProperties.charge.distanceMax.step}
+              onChange={(e: any) => handleChange('charge.distanceMax.value', scale(e.target.value, false))}
             />
           </label>
           </div>
@@ -162,9 +166,9 @@ export const ControlPanel = (props: PropType) => {
             <input
               type="range"
               min="0"
-              max="100"
+              max="1000"
               value={props.forceProperties.link.distance}
-              step="1"
+              step="10"
               onChange={(e: any) => handleChange('link.distance', e.target.value)}
             />
           </label>
@@ -227,7 +231,7 @@ export const ControlPanel = (props: PropType) => {
             <output id="collide.iterations">iterations : {props.forceProperties.collide.iterations}</output>
             <input
               type="range"
-              min="0"
+              min="1"
               max="10"
               value={props.forceProperties.collide.iterations}
               step="1"
@@ -278,10 +282,10 @@ export const ControlPanel = (props: PropType) => {
 
       </div>  {/* layout */}
 
-
-
-
-      
     </div>
   );
 };
+
+function scale(value: number, to: boolean = true) {
+  return to ? Math.floor(Math.log(value)) : Math.floor(Math.exp(value))
+}

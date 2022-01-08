@@ -8,8 +8,13 @@
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
-  align-items: flex-end;
+  align-items: flex-start;
   padding: 0.25em 0.25em;
+  width: 100%;
+}
+
+.Graph__Menu__panel button {
+  width: 100%;
 }
 
 /* .Graph__Menu__panel_container {

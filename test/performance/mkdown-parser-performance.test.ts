@@ -2,7 +2,6 @@ import { parseNoteBody } from "../../src/joplin/mkdown-parser";
 import Note, { parseNoteLinks } from "../../src/joplin/note";
 import { performance } from "perf_hooks";
 import { promises as fs } from "fs";
-import { isConditionalExpression } from "typescript";
 
 export function generateNotes(N: number): Array<Note> {
   const notes = [...Array(N).keys()].map((i) => {
@@ -20,23 +19,12 @@ async function loadSample(): Promise<string> {
   return data.toString('utf8');
 }
 
-
-async function init() {
-  const sample = await loadSample();
-
-  let notes = generateNotes(1);
-  notes.forEach((note) => {
-    note.body = sample;
-  });
-  return { sample, notes };
-}
-
-describe("parse note", () => {
+describe("benchmark extract note link", () => {
   let note: Note;
 
   beforeEach(() => {
     note = {
-      id: "context_note_id",
+      id: "note_id",
       title: "",
       links: [],
       body: "",
