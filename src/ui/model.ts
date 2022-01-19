@@ -9,15 +9,35 @@ import { ForceGraphInstance } from "force-graph";
 const defaultForceProperties = {
   center: {
       enabled: false,
-      x: 0,
-      y: 0
+      x: {
+        value: 0,
+        min: -1,
+        max: 1,
+        step: 0.05
+      },
+      y: {
+        value: 0,
+        min: -1,
+        max: 1,
+        step: 0.05
+      }
   },
   charge: {
-      enabled: false,
-      strength: -30,
-      distanceMin: 1,
+      enabled: true,
+      strength: {
+        value: -30,
+        min: -100,
+        max: 100,
+        step: 5
+      },
+      distanceMin: {
+        value: 1,
+        min: 0,
+        max: 50,
+        step: 5
+      },
       distanceMax: {
-        value: Math.exp(Math.log(2000)),
+        value: Math.exp(Math.log(200)),
         lowerBound: 1,
         upperBound: Math.exp(Math.log(2000)),
         step: 0.1,
@@ -27,9 +47,24 @@ const defaultForceProperties = {
   },
   collide: {
       enabled: true,
-      strength: .7,
-      iterations: 1,
-      radius: 30
+      strength: {
+        value: 30,
+        min: 0,
+        max: 100,
+        step: 1
+      },
+      iterations: {
+        value: 1,
+        min: 0,
+        max: 10,
+        step: 1
+      },
+      radius: {
+        value: 30,
+        min: 0,
+        max: 100,
+        step: 1
+      }
   },
   forceX: {
       enabled: false,
@@ -43,8 +78,18 @@ const defaultForceProperties = {
   },
   link: {
       enabled: true,
-      distance: 30,
-      iterations: 1
+      distance: {
+        value: 30,
+        min: 0,
+        max: 100,
+        step: 1
+      },
+      iterations: {
+        value: 1,
+        min: 0,
+        max: 10,
+        step: 1
+      },
   }
 }
 
@@ -59,9 +104,10 @@ const defaultStyle = {
     width: 1.5,
     particleWidth: 3.0,
   },
-  fontSize: "#CECECE",
+  fontColor: "#CECECE",
   node: {
-    color: "grey",
+    // color: "grey",
+    color: "#CECECE",
     highlightedColor: "#CECECE",
     selectedColor: "#45b1ff",
     border: {

@@ -35,9 +35,20 @@ export function onEngineStop() {
 export const ControlPanel = (props: PropType) => {
   const handleChange = (attribute: string, value: any) => {
     const updated = cloneDeep(props.forceProperties);
+    
+    console.log('before ', updated);
+    
     lodashSet(updated, attribute, value);
     props.updateForceProperties(updated);
+
+    console.log('after', updated)
   };
+
+  let charge = props.forceProperties.charge;
+  let link = props.forceProperties.link;
+  let collide = props.forceProperties.collide;
+  let center = props.forceProperties.center;
+
 
   return (
     <div className="Graph__ControlPanel_container">
@@ -109,41 +120,41 @@ export const ControlPanel = (props: PropType) => {
 
           <div>
             <label title="Negative strength repels nodes. Positive strength attracts nodes.">
-              <output id='charge.strength'>strength : {props.forceProperties.charge.strength}</output>
+              <output id='charge.strength'>strength : {charge.strength.value}</output>
               <input
                 type="range"
-                min="-200"
-                max="200"
-                value={props.forceProperties.charge.strength}
-                step="10"
-                onChange={(e: any) => handleChange('charge.strength', e.target.value)}
+                min={charge.strength.min}
+                max={charge.strength.max}
+                value={charge.strength.value}
+                step={charge.strength.step}
+                onChange={(e: any) => handleChange('charge.strength.value', e.target.value)}
               />
             </label>
           </div>
           <div>
             <label title="Minimum distance at which force is applied.">
-              <output id='charge.distanceMin'>distanceMin : {props.forceProperties.charge.distanceMin}</output>
+              <output id='charge.distanceMin'>distanceMin : {charge.distanceMin.value}</output>
               <input
                 type="range"
-                min="1"
-                max="50"
-                value={props.forceProperties.charge.distanceMin}
-                step="5"
-                onChange={(e: any) => handleChange('charge.distanceMin', e.target.value)}
+                min={charge.distanceMin.min}
+                max={charge.distanceMin.max}
+                value={charge.distanceMin.value}
+                step={charge.distanceMin.step}
+                onChange={(e: any) => handleChange('charge.distanceMin.value', e.target.value)}
               />
             </label>
           </div>
           <div>
           <label title="Maximum distance at which the force is applied">
-            <output id="charge.distanceMax.value">distanceMax : {props.forceProperties.charge.distanceMax.value < 100 ? 
-            props.forceProperties.charge.distanceMax.value :
-            props.forceProperties.charge.distanceMax.value.toExponential(0)}</output>
+            <output id="charge.distanceMax.value">distanceMax : {charge.distanceMax.value < 100 ? 
+            Math.round(charge.distanceMax.value) :
+            charge.distanceMax.value.toExponential(0)}</output>
             <input
               type="range"
-              min={scale(props.forceProperties.charge.distanceMax.lowerBound)}
-              max={scale(props.forceProperties.charge.distanceMax.upperBound)}
-              value={scale(props.forceProperties.charge.distanceMax.value)}
-              step={props.forceProperties.charge.distanceMax.step}
+              min={scale(charge.distanceMax.lowerBound)}
+              max={scale(charge.distanceMax.upperBound)}
+              value={scale(charge.distanceMax.value)}
+              step={charge.distanceMax.step}
               onChange={(e: any) => handleChange('charge.distanceMax.value', scale(e.target.value, false))}
             />
           </label>
@@ -154,7 +165,7 @@ export const ControlPanel = (props: PropType) => {
      <p>
               <Checkbox
                 label="Link"
-                value={props.forceProperties.link.enabled}
+                value={link.enabled}
                 onChange={(e: any) => handleChange('link.enabled', e.target.checked)}
               />
             {/* Enable link force. */}
@@ -162,27 +173,27 @@ export const ControlPanel = (props: PropType) => {
 
           <div>
           <label title="The force will push/pull nodes to make links this long">
-            <output id="link.distance">distance : {props.forceProperties.link.distance}</output>
+            <output id="link.distance">distance : {link.distance.value}</output>
             <input
               type="range"
-              min="0"
-              max="1000"
-              value={props.forceProperties.link.distance}
-              step="10"
-              onChange={(e: any) => handleChange('link.distance', e.target.value)}
+              min={link.distance.min}
+              max={link.distance.max}
+              value={link.distance.value}
+              step={link.distance.step}
+              onChange={(e: any) => handleChange('link.distance.value', e.target.value)}
             />
           </label>
           </div>
           <div>
           <label title="Higher values increase rigidity of the links (WARNING: high values are computationally expensive)">
-            <output id="link.iterations">iterations : {props.forceProperties.link.iterations}</output>
+            <output id="link.iterations">iterations : {link.iterations.value}</output>
             <input
               type="range"
-              min="1"
-              max="10"
-              value={props.forceProperties.link.iterations}
-              step="1"
-              onChange={(e: any) => handleChange('link.iterations', e.target.value)}
+              min={link.iterations.min}
+              max={link.iterations.max}
+              value={link.iterations.value}
+              step={link.iterations.step}
+              onChange={(e: any) => handleChange('link.iterations.value', e.target.value)}
             />
           </label>
           </div>
@@ -192,7 +203,7 @@ export const ControlPanel = (props: PropType) => {
         <p>
               <Checkbox
                 label="Collide"
-                value={props.forceProperties.collide.enabled}
+                value={collide.enabled}
                 onChange={(e: any) => handleChange('collide.enabled', e.target.checked)}
               />
             {/* Prevents nodes from overlapping. */}
@@ -200,42 +211,42 @@ export const ControlPanel = (props: PropType) => {
 
           <div>
           <label>
-            <output id="collide.strength">strength : {props.forceProperties.collide.strength}</output>
+            <output id="collide.strength">strength : {collide.strength.value}</output>
             <input
               type="range"
-              min="0"
-              max="2"
-              value={props.forceProperties.collide.strength}
-              step="0.1"
-              onChange={(e: any) => handleChange('collide.strength', e.target.value)}
+              min={collide.strength.min}
+              max={collide.strength.max}
+              value={collide.strength.value}
+              step={collide.strength.step}
+              onChange={(e: any) => handleChange('collide.strength.value', e.target.value)}
             />
           </label>
           </div>
 
           <div>
           <label title="Size of nodes">
-            <output id="collide.radius">radius : {props.forceProperties.collide.radius}</output>
+            <output id="collide.radius">radius : {collide.radius.value}</output>
             <input
               type="range"
-              min="0"
-              max="100"
-              value={props.forceProperties.collide.radius}
-              step="1"
-              onChange={(e: any) => handleChange('collide.radius', e.target.value)}
+              min={collide.radius.min}
+              max={collide.radius.max}
+              value={collide.radius.value}
+              step={collide.radius.step}
+              onChange={(e: any) => handleChange('collide.radius.value', e.target.value)}
             />
           </label>
           </div>
 
           <div>
           <label title="Higher values increase rigidity of the nodes (WARNING: high values are computationally expensive)">
-            <output id="collide.iterations">iterations : {props.forceProperties.collide.iterations}</output>
+            <output id="collide.iterations">iterations : {collide.iterations.value}</output>
             <input
               type="range"
-              min="1"
-              max="10"
-              value={props.forceProperties.collide.iterations}
-              step="1"
-              onChange={(e: any) => handleChange('collide.iterations', e.target.value)}
+              min={collide.iterations.min}
+              max={collide.iterations.max}
+              value={collide.iterations.value}
+              step={collide.iterations.step}
+              onChange={(e: any) => handleChange('collide.iterations.value', e.target.value)}
             />
           </label>
           </div>
@@ -245,7 +256,7 @@ export const ControlPanel = (props: PropType) => {
           <p>
               <Checkbox
                 label="Center"
-                value={props.forceProperties.center.enabled}
+                value={center.enabled}
                 onChange={(e: any) => handleChange('center.enabled', e.target.checked)}
               />
             {/* Move the center of the graph on x and y. */}
@@ -253,27 +264,27 @@ export const ControlPanel = (props: PropType) => {
 
           <div>
           <label title="x axis translation.">
-            <output id="centerX">x : {props.forceProperties.center.x}</output>
+            <output id="centerX">x : {center.x.value}</output>
             <input
               type="range"
-              min="-1"
-              max="1"
-              value={props.forceProperties.center.x}
-              step="0.05"
-              onChange={(e: any) => handleChange('center.x', e.target.value)}
+              min={center.x.min}
+              max={center.x.max}
+              value={center.x.value}
+              step={center.x.step}
+              onChange={(e: any) => handleChange('center.x.value', e.target.value)}
             />
           </label>
           </div>
           <div>
           <label title="y axis translation.">
-            <output id="centerY">y : {props.forceProperties.center.y}</output>
+            <output id="centerY">y : {center.y.value}</output>
             <input
               type="range"
-              min="-1"
-              max="1"
-              value={props.forceProperties.center.y}
-              step="0.05"
-              onChange={(e: any) => handleChange('center.y', e.target.value)}
+              min={center.y.min}
+              max={center.y.max}
+              value={center.y.value}
+              step={center.y.step}
+              onChange={(e: any) => handleChange('center.y.value', e.target.value)}
             />
           </label>
           </div>
@@ -287,5 +298,5 @@ export const ControlPanel = (props: PropType) => {
 };
 
 function scale(value: number, to: boolean = true) {
-  return to ? Math.floor(Math.log(value)) : Math.floor(Math.exp(value))
+  return to ? Math.log(value) : Math.exp(value)
 }

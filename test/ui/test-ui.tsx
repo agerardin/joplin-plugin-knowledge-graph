@@ -10,7 +10,7 @@ import Note, { buildNodeFromNote } from "../../src/joplin/note";
 
 // import generateGraph from './generate-graph'
 window.addEventListener('load', async function () {
-    let graph = generateRandomGraph(2500, 2000, 50, 20, 'test-graph');
+    let graph = generateRandomGraph(400, 200, 50, 20, 'test-graph');
 
     // let nodes = generateNodes(5);
     // createLink(nodes[0], nodes[1]);

@@ -31,8 +31,9 @@ const  model = new Model(graph);
 
 let simulationTicksCounter = 0;
 
-let FONT_SIZE = 4; 
-let WEIGTHED_LABEL = true;
+let FONT_SIZE = 3; 
+let SCALED_LABEL = false;
+let WEIGHTED_LABEL = true;
 let PAINT_PHOTONS_ON_CLICK = true;
 let PAINT_PHOTONS_ON_HOVER = true;
 let MENU_PANEL_SIZE = 15;
@@ -40,7 +41,7 @@ let MENU_PANEL_SIZE = 15;
 let graphListeners: Map<UIEvent, Function> = new Map();
 
 let SHOW_MENU = true;
-let SHOW_TAG_NODES = true;
+let SHOW_TAG_NODES = true;  
 let SHOW_ONLY_SELECTED = false;
 let SHOW_ALL_LINKS = true;
 
@@ -245,18 +246,18 @@ function updateForceProperties(updatedForceProperties) {
 
 function updateForces() {
   graph.d3Force("center")
-      .x(model.width * model.forceProperties.center.x * (model.forceProperties.center.enabled === true ? 1 : 0))
-      .y(model.height * model.forceProperties.center.y * (model.forceProperties.center.enabled === true ? 1 : 0));
+      .x(model.width * model.forceProperties.center.x.value * (model.forceProperties.center.enabled === true ? 1 : 0))
+      .y(model.height * model.forceProperties.center.y.value * (model.forceProperties.center.enabled === true ? 1 : 0));
   
   graph.d3Force("charge")
-      .strength(model.forceProperties.charge.strength * (model.forceProperties.charge.enabled === true ? 1 : 0) )
-      .distanceMin(model.forceProperties.charge.distanceMin)
+      .strength(model.forceProperties.charge.strength.value * (model.forceProperties.charge.enabled === true ? 1 : 0) )
+      .distanceMin(model.forceProperties.charge.distanceMin.value)
       .distanceMax(model.forceProperties.charge.distanceMax.value);
   
   graph.d3Force("collide")
-      .strength(model.forceProperties.collide.strength * (model.forceProperties.collide.enabled === true ? 1 : 0) )
-      .radius(model.forceProperties.collide.radius)
-      .iterations(model.forceProperties.collide.iterations);
+      .strength(model.forceProperties.collide.strength.value * (model.forceProperties.collide.enabled === true ? 1 : 0) )
+      .radius(model.forceProperties.collide.radius.value)
+      .iterations(model.forceProperties.collide.iterations.value);
 
   if(!model.forceProperties.link.enabled) {
     graph.d3Force("link",null);
@@ -378,10 +379,11 @@ function didGraphDataUpdate(graphData: GraphData) {
 
 function setupForceGraph() {
   graph
-    .linkHoverPrecision(8)
+    .linkHoverPrecision(1)
     .nodeRelSize(1)
     .nodeVal((node: GraphNode) => {
       return getNodeWeigth(node);
+      // return node.type === NODE_TYPE.TAG ? 2 : 1;
     })
     .backgroundColor(model.style.background)
     .linkWidth(() => model.style.link.width)
@@ -426,6 +428,9 @@ function setupForceGraph() {
     simulationTicksCounter = 0;
   });
 
+  graph.cooldownTime(15000);
+  graph.cooldownTicks(500);
+
   graph
     .onNodeClick((node: GraphNode, event) => {
       handleNoteClick(node, event);
@@ -446,26 +451,51 @@ function setupForceGraph() {
 function paintNode(node: GraphNode, ctx : CanvasRenderingContext2D, globalScale: number) {
   /* label size */
   const nodeRelSize = graph.nodeRelSize(); //relative scale between nodes & links
-  const size = nodeRelSize * 0.5 * getNodeWeigth(node); //relative scale between nodes based on weight
-  //TODO can add extra control if too much
-  const scaledLabel = FONT_SIZE / (globalScale * getNodeSize(getNodeWeigth(node)))  //scale label depending on zoom level
-  const labelSize = WEIGTHED_LABEL ?  scaledLabel * controlLabelSizeWrtNodeSize(size) : scaledLabel * controlLabelSizeWrtNodeSize(nodeRelSize);
+  const size = nodeRelSize * getNodeWeigth(node); //node area based on node weight
+  let labelSize = SCALED_LABEL ?  FONT_SIZE / globalScale : FONT_SIZE; //scale label depending on zoom level
+  // const scaledLabel = 20 / globalScale;
+  // const scaledLabel = FONT_SIZE;
+  labelSize = WEIGHTED_LABEL ?  labelSize * controlLabelSizeWrtNodeSize(size) : FONT_SIZE;
 
+  // if(node.type === NODE_TYPE.TAG) {
+  //   console.log(graph.nodeRelSize())
+  // }
+
+  const scaledWeight = d3
+  .scaleLinear()
+  .domain([1, 5])
+  .range([0, 1])
+  .clamp(true);
+
+  const scaledGlobalScale = d3
+  .scaleLinear()
+  .domain([0.5, 5])
+  .range([0.2, 1])
+  .clamp(true);
+
+  const finalScale = d3
+  .scaleLinear()
+  .domain([0, 1])
+  .range([0, 1])
+  .clamp(true);
+  
   const labelX = node.x;
-  const labelY = node.y + size;
+  const labelY = node.y + Math.sqrt(size);
   
   /* label color */
   const nodeState = getNodeState(node);
   // adapt opacity based on zoom level to reduce noise
   let labelColor = getLabelColor(node, nodeState);
-  labelColor = labelColor.copy({
-    opacity:
-      nodeState === GraphObjectState.REGULAR
-        ? getNodeLabelOpacity(globalScale) * getNodeLabelOpacityWrtLabelSize.invert(labelSize)
-        : nodeState === GraphObjectState.HIGHLIGHTED
-        ? 1
-        : labelColor.opacity
-  });
+  // let scaleComponent = Math.pow(scaledGlobalScale(globalScale),2);
+  let sizeComponent = scaledWeight(Math.sqrt(size));
+  // labelColor = labelColor.copy({
+  //   opacity:
+  //     nodeState === GraphObjectState.REGULAR
+  //       ? Math.log(1 + finalScale( scaleComponent + sizeComponent + scaleComponent * sizeComponent ))
+  //       : nodeState === GraphObjectState.HIGHLIGHTED
+  //       ? 1
+  //       : labelColor.opacity
+  // });
 
   const label = node.label;
 
@@ -488,26 +518,21 @@ function paintNode(node: GraphNode, ctx : CanvasRenderingContext2D, globalScale:
 // Opacity based on the zoom level. May need adjustment.
 const getNodeLabelOpacity = d3
   .scaleLinear()
-  .domain([0.1, 3])
+  .domain([0, 1])
   .range([0, 1])
   .clamp(true);
 
-const getNodeLabelOpacityWrtLabelSize = d3
-.scaleLinear()
-.domain([1, 2])
-.range([1, 1.5])
 
 
 const controlLabelSizeWrtNodeSize = d3
   .scaleLinear()
   .domain([0, 30])
-  .range([1, 30])
+  .range([1, 3])
   .clamp(true);
 
   const  controlLabelSizeWrtScale = d3
   .scaleLinear()
-  .domain([0, 30])
-  .range([2, 6])
+  .range([12, 14])
   .clamp(true);
 
  
@@ -578,7 +603,8 @@ function animate() {
 
 // more importance given to connected nodes
 function getNodeWeigth(node: GraphNode) {
-  return node.links.length + node.backlinks.length;
+  const weight = node.links.length + node.backlinks.length;
+  return (weight > 0) ? weight : 1;
 }
 
 const getNodeSize = d3
@@ -633,13 +659,13 @@ const Draw = (ctx: CanvasRenderingContext2D) => ({
 
 // dynamically figuring out color scheme for node labels
 function getLabelColor(node: GraphNode, nodeState: GraphObjectState): HSLColor {
-  let fill = d3.hsl(model.style.fontSize);
+  let fill = d3.hsl(model.style.fontColor);
 
   switch (nodeState) {
     case GraphObjectState.HIGHLIGHTED:
-      return d3.hsl(model.style.fontSize).brighter();
+      return d3.hsl(model.style.fontColor).brighter();
     case GraphObjectState.LESSENED:
-      return fill.copy({ opacity: 0.05 });
+      return fill.copy({ opacity: 0.15 });
     case GraphObjectState.HIDDEN:
       return fill.copy({ opacity: 0 });
     case GraphObjectState.REGULAR:
@@ -712,6 +738,12 @@ function getLinkColor(linkState: GraphObjectState, link: Link): string {
     highlightcolor = model.style.tagNode.highlightColor;
     defaultColor = d3.hsl(highlightcolor).darker(2).toString();
   }
+
+  const scaledGlobalScale = d3
+  .scaleLinear()
+  .domain([0, 10])
+  .range([0, 1])
+  .clamp(true);
 
   switch (linkState) {
     case GraphObjectState.HIGHLIGHTED:
@@ -825,7 +857,7 @@ function applySetting(setting: Setting) {
       FONT_SIZE = setting.value as number;
       break;
     case SettingLabel.RELATIVE_FONT_SIZE:
-      WEIGTHED_LABEL = setting.value as boolean;
+      SCALED_LABEL = setting.value as boolean;
       break;
     case SettingLabel.PAINT_PHOTONS_ON_CLICK:
       PAINT_PHOTONS_ON_CLICK = setting.value as boolean;
