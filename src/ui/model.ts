@@ -48,7 +48,7 @@ const defaultForceProperties = {
   collide: {
       enabled: true,
       strength: {
-        value: 30,
+        value: 1,
         min: 0,
         max: 100,
         step: 1
@@ -60,7 +60,7 @@ const defaultForceProperties = {
         step: 1
       },
       radius: {
-        value: 30,
+        value: 1,
         min: 0,
         max: 100,
         step: 1
@@ -177,7 +177,7 @@ export class Model {
 
   selectNode(node: GraphNode) {
     this.selectedNodes.add(node);
-    // this.updateFocus();
+    this.updateFocus();
   }
 
   selectLink(link: Link) {
@@ -187,7 +187,7 @@ export class Model {
 
   unselectNode(node: GraphNode) {
     this.selectedNodes.delete(node);
-    // this.updateFocus();
+    this.updateFocus();
   }
 
   unselectLink(link: Link) {

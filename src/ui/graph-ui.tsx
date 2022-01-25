@@ -1,7 +1,6 @@
 import ForceGraph, {
   NodeObject,
   GraphData,
-  ForceGraphInstance,
 } from "force-graph";
 import React from "react";
 import { render } from "react-dom";
@@ -32,18 +31,19 @@ const  model = new Model(graph);
 let simulationTicksCounter = 0;
 
 let FONT_SIZE = 3; 
-let SCALED_LABEL = false;
+let SCALED_LABEL = true;
 let WEIGHTED_LABEL = true;
 let PAINT_PHOTONS_ON_CLICK = true;
 let PAINT_PHOTONS_ON_HOVER = true;
 let MENU_PANEL_SIZE = 15;
-
-let graphListeners: Map<UIEvent, Function> = new Map();
-
 let SHOW_MENU = true;
 let SHOW_TAG_NODES = true;  
 let SHOW_ONLY_SELECTED = false;
 let SHOW_ALL_LINKS = true;
+let COMPUTE_STATS = SCALED_LABEL;
+
+let graphListeners: Map<UIEvent, Function> = new Map();
+
 
 setupForceGraph();
 
@@ -222,6 +222,13 @@ function showOnlySelectedNodes(show: boolean) {
   }
   const graphData = buildGraphData();
   didGraphDataUpdate(graphData);
+  // // graph.zoomToFit(300, 10, () => true);
+  // let bbox = graph.getGraphBbox();
+  // let x = ( bbox.x[0] + bbox.x[1] ) / 2;
+  // let y = ( bbox.y[0] + bbox.y[1] ) / 2;
+  // graph.centerAt(x, y);
+
+  
 }
 
 function tagSelectionChanged(tags: any[]) {
@@ -280,7 +287,12 @@ function updateForces() {
 
 function resetForces() {
   model.resetForces();
- updateForceProperties(model.forceProperties);
+  graph.graphData().nodes.forEach(node => {
+    node.x = undefined;
+    node.y = undefined;
+  });
+  didGraphDataUpdate(graph.graphData());
+  updateForceProperties(model.forceProperties);
 }
 
 function notifyListener(event: UIEvent, value?: any) {
@@ -319,9 +331,10 @@ function buildGraphData() {
 
   //filter nodes
   if (model.nodeFilters.length > 0) {
-    graphData.nodes = graphData.nodes.filter(node => applyFilters(node, model.nodeFilters));
+    graphData.nodes = graphData.nodes.filter(node => {
+      return applyFilters(node, model.nodeFilters)
+    });
   }
-
   // collect/filter relationships
   const filteredNodeIds = new Set(graphData.nodes.map(node => node.id));
   graphData.nodes.forEach((node) => {
@@ -359,9 +372,37 @@ function buildGraphData() {
     model.nodes.get(link.targetId).backlinks.push(link);
   });
 
+  if(COMPUTE_STATS) {
+    graphData.nodes.forEach(node => collectStats(node));
+    computeStats();
+    console.log("degrees", degrees);
+    console.log("hist",histogram);
+  }
+
   addCurvature(graphData);
 
   return graphData;
+}
+
+let maxDegree = 0;
+let degrees = new Map<number,number>();
+
+function collectStats(node : GraphNode) {
+  let degree = getNodeWeigth(node);
+  maxDegree =  degree > maxDegree ? degree : maxDegree;
+  degrees.has(degree) ? degrees.set(degree, degrees.get(degree) + 1) : degrees.set(degree, 1);
+}
+
+let nbOfBuckets = 10.0;
+let histogram = Array(nbOfBuckets).fill(0);
+
+function computeStats() {
+  let step = (maxDegree + 1/maxDegree) / nbOfBuckets;
+  for(let i = 0; i <= maxDegree; i++) {
+    if(degrees.has(i)) {
+      histogram[Math.floor(i / step)] += degrees.get(i);
+    }
+  }
 }
 
 function applyFilters(elt: any, filters: Filter[]) {
@@ -383,7 +424,6 @@ function setupForceGraph() {
     .nodeRelSize(1)
     .nodeVal((node: GraphNode) => {
       return getNodeWeigth(node);
-      // return node.type === NODE_TYPE.TAG ? 2 : 1;
     })
     .backgroundColor(model.style.background)
     .linkWidth(() => model.style.link.width)
@@ -409,6 +449,10 @@ function setupForceGraph() {
       .d3Force("center", d3.forceCenter() as any)
       .d3Force('forceX', d3.forceX() as any)
       .d3Force('forceY', d3.forceY() as any)
+
+    updateForces();
+
+    let link = graph.d3Force("link");
 
     graph
     .autoPauseRedraw(true);
@@ -453,8 +497,6 @@ function paintNode(node: GraphNode, ctx : CanvasRenderingContext2D, globalScale:
   const nodeRelSize = graph.nodeRelSize(); //relative scale between nodes & links
   const size = nodeRelSize * getNodeWeigth(node); //node area based on node weight
   let labelSize = SCALED_LABEL ?  FONT_SIZE / globalScale : FONT_SIZE; //scale label depending on zoom level
-  // const scaledLabel = 20 / globalScale;
-  // const scaledLabel = FONT_SIZE;
   labelSize = WEIGHTED_LABEL ?  labelSize * controlLabelSizeWrtNodeSize(size) : FONT_SIZE;
 
   // if(node.type === NODE_TYPE.TAG) {
@@ -856,8 +898,9 @@ function applySetting(setting: Setting) {
     case SettingLabel.FONT_SIZE:
       FONT_SIZE = setting.value as number;
       break;
-    case SettingLabel.RELATIVE_FONT_SIZE:
+    case SettingLabel.SCALED_LABEL:
       SCALED_LABEL = setting.value as boolean;
+      COMPUTE_STATS = SCALED_LABEL;
       break;
     case SettingLabel.PAINT_PHOTONS_ON_CLICK:
       PAINT_PHOTONS_ON_CLICK = setting.value as boolean;

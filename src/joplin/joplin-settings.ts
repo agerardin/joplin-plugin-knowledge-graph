@@ -37,13 +37,13 @@ export const PLUGIN_SETTINGS = {
     label: SettingLabel.FONT_SIZE,
     description: "Size node label in px. - DEFAULT: 4",
   },
-  [SettingLabel.RELATIVE_FONT_SIZE]: {
+  [SettingLabel.SCALED_LABEL]: {
     value: true, 
     type: SettingItemType.Bool,
     section: sectionName,
     public: true,
-    label: SettingLabel.RELATIVE_FONT_SIZE,
-    description: "Should the label size be proportional to node weight?",
+    label: SettingLabel.SCALED_LABEL,
+    description: "Should the label size be scaled with the zoom level?",
   },
   [SettingLabel.SHOW_ON_START]: {
     value: true, 
