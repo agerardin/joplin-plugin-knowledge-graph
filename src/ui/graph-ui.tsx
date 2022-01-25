@@ -30,7 +30,7 @@ const  model = new Model(graph);
 
 let simulationTicksCounter = 0;
 
-let FONT_SIZE = 3; 
+let FONT_SIZE = 10; 
 let SCALED_LABEL = true;
 let WEIGHTED_LABEL = true;
 let PAINT_PHOTONS_ON_CLICK = true;
@@ -302,13 +302,9 @@ function notifyListener(event: UIEvent, value?: any) {
 }
 
 function setGraphDimensions() {
-  const graphPanel = document.getElementById("graph");
-  
   model.width = window.innerWidth;
   model.height = window.innerHeight;
-
-  graph.width(model.width);
-  graph.height(model.height);
+  graph.width(model.width).height(model.height);
 }
 
 function updateTagIndex(tagIndex : Map<string, Tag>) {
@@ -375,6 +371,7 @@ function buildGraphData() {
   if(COMPUTE_STATS) {
     graphData.nodes.forEach(node => collectStats(node));
     computeStats();
+    updateParams();
     console.log("degrees", degrees);
     console.log("hist",histogram);
   }
@@ -388,21 +385,42 @@ let maxDegree = 0;
 let degrees = new Map<number,number>();
 
 function collectStats(node : GraphNode) {
+  maxDegree = 0;
   let degree = getNodeWeigth(node);
   maxDegree =  degree > maxDegree ? degree : maxDegree;
   degrees.has(degree) ? degrees.set(degree, degrees.get(degree) + 1) : degrees.set(degree, 1);
 }
 
 let nbOfBuckets = 10.0;
-let histogram = Array(nbOfBuckets).fill(0);
+let histogram = Array(nbOfBuckets);
+let nbOfNodes = 0;
+let nodeCount = 0;
+let top20 = undefined;
 
 function computeStats() {
+  histogram.fill(0);
+  nbOfNodes = 0;
+  nodeCount = 0;
+  let top20 = undefined;
   let step = (maxDegree + 1/maxDegree) / nbOfBuckets;
   for(let i = 0; i <= maxDegree; i++) {
     if(degrees.has(i)) {
       histogram[Math.floor(i / step)] += degrees.get(i);
+      nbOfNodes += degrees.get(i);
     }
   }
+
+  console.log('compute hist');
+  for(let i = maxDegree; i >= 0; i--) {
+    if(degrees.has(i)) {
+      nodeCount += degrees.get(i);
+      if(top20 == undefined && nodeCount / nbOfNodes > 0.02) {
+        top20 = i;
+        console.log('top 20% max degree', top20);
+      }
+    }
+  }
+
 }
 
 function applyFilters(elt: any, filters: Filter[]) {
@@ -416,6 +434,8 @@ function applyFilters(elt: any, filters: Filter[]) {
 
 function didGraphDataUpdate(graphData: GraphData) {
   graph.graphData(graphData);
+
+  console.log("graph zoom boundaries", graph.minZoom(), graph.maxZoom());
 }
 
 function setupForceGraph() {
@@ -492,16 +512,53 @@ function setupForceGraph() {
   setGraphDimensions();
 }
 
+const nodeSizeScale = (maxNodeSize: number, maxScaled: number) => 
+  d3
+  .scaleLinear()
+  .domain([1, maxNodeSize])
+  .range([1, maxScaled])
+  .clamp(true);
+
+const zoomScale = (maxZoomCutOff: number) => 
+  (zoom : number) => (zoom > maxZoomCutOff) ? maxZoomCutOff : zoom;
+
+const labelNodeSizeFactor = 3;
+const maxZoomCutOff = 4;
+let nodeSizeScaling = nodeSizeScale(maxDegree, labelNodeSizeFactor);
+let zoomScaling = zoomScale(maxZoomCutOff);
+
+const opacityScale = 
+  d3
+  .scalePow()
+  .domain([0.0001, maxZoomCutOff])
+  .range([0, 1])
+  .clamp(true);
+
+function updateParams() {
+  nodeSizeScaling = nodeSizeScale(maxDegree, labelNodeSizeFactor);
+}
+
 function paintNode(node: GraphNode, ctx : CanvasRenderingContext2D, globalScale: number) {
   /* label size */
   const nodeRelSize = graph.nodeRelSize(); //relative scale between nodes & links
   const size = nodeRelSize * getNodeWeigth(node); //node area based on node weight
-  let labelSize = SCALED_LABEL ?  FONT_SIZE / globalScale : FONT_SIZE; //scale label depending on zoom level
-  labelSize = WEIGHTED_LABEL ?  labelSize * controlLabelSizeWrtNodeSize(size) : FONT_SIZE;
 
-  // if(node.type === NODE_TYPE.TAG) {
-  //   console.log(graph.nodeRelSize())
-  // }
+  let nodeSizeFactor = nodeSizeScaling(size);
+  let zoomFactor = zoomScaling(globalScale);
+
+  let labelSize = SCALED_LABEL ?  nodeSizeFactor * FONT_SIZE / zoomFactor : FONT_SIZE; //scale label depending on zoom level
+  
+  let opacityFactor = Math.pow(size,4) * Math.pow(zoomFactor,4);
+  // let opacityFactor = opacityScale(zoomFactor);
+  opacityFactor = opacityFactor > 1 ? 1 : opacityFactor;
+
+  if(node.type === NODE_TYPE.TAG) {
+    // console.log(graph.nodeRelSize())
+    console.log("zoom factor ", zoomFactor);
+    console.log("graph zoom value and global scale", graph.zoom(), globalScale);
+    console.log("label size", labelSize);
+    console.log("opacity factor ", opacityFactor);
+  }
 
   const scaledWeight = d3
   .scaleLinear()
@@ -528,8 +585,11 @@ function paintNode(node: GraphNode, ctx : CanvasRenderingContext2D, globalScale:
   const nodeState = getNodeState(node);
   // adapt opacity based on zoom level to reduce noise
   let labelColor = getLabelColor(node, nodeState);
+  labelColor.opacity = opacityFactor;
+
+
   // let scaleComponent = Math.pow(scaledGlobalScale(globalScale),2);
-  let sizeComponent = scaledWeight(Math.sqrt(size));
+  // let sizeComponent = scaledWeight(Math.sqrt(size));
   // labelColor = labelColor.copy({
   //   opacity:
   //     nodeState === GraphObjectState.REGULAR
@@ -566,11 +626,7 @@ const getNodeLabelOpacity = d3
 
 
 
-const controlLabelSizeWrtNodeSize = d3
-  .scaleLinear()
-  .domain([0, 30])
-  .range([1, 3])
-  .clamp(true);
+
 
   const  controlLabelSizeWrtScale = d3
   .scaleLinear()
