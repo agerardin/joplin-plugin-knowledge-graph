@@ -328,7 +328,7 @@ async function updateTags() : Promise<GraphUpdate> {
   const graphUpdate = new GraphUpdate(graphId);
 
   graph.tagIndex.forEach( (value, key) => {
-    if(!updatedTagIndex.has(key)) { //delete
+    if(!!updatedTagIndex.has(key)) { //delete
       graph.nodes.delete(key);
       graph.tagIndex.delete(key);
       graphUpdate.delete.push(value.id);
